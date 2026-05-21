@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { LogOut, Trophy, TrendingUp, Crown, ArrowUpRight, Wrench } from "lucide-react";
+import { LogOut, Trophy, TrendingUp, Crown, ArrowUpRight, Wrench, Wallet } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { ScanButton } from "./ScanButton";
