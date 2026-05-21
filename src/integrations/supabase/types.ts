@@ -14,7 +14,130 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          batch_number: string
+          created_at: string
+          id: string
+          points_earned: number
+          user_id: string
+        }
+        Insert: {
+          batch_number: string
+          created_at?: string
+          id?: string
+          points_earned: number
+          user_id: string
+        }
+        Update: {
+          batch_number?: string
+          created_at?: string
+          id?: string
+          points_earned?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          last_reset_date: string
+          phone: string
+          pin: string
+          points: number
+          tier: string
+          units_today: number
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_reset_date?: string
+          phone: string
+          pin: string
+          points?: number
+          tier?: string
+          units_today?: number
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_reset_date?: string
+          phone?: string
+          pin?: string
+          points?: number
+          tier?: string
+          units_today?: number
+          worker_id?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          id: number
+          maintenance: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          maintenance?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          maintenance?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      upgrade_requests: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          id: string
+          requested_tier: string
+          status: string
+          transaction_code: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          id?: string
+          requested_tier: string
+          status?: string
+          transaction_code: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          id?: string
+          requested_tier?: string
+          status?: string
+          transaction_code?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upgrade_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
