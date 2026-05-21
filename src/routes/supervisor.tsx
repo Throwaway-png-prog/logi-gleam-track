@@ -73,12 +73,23 @@ function SupervisorDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [pending, setPending] = useState<(UpgradeRequest & { profile?: Profile })[]>([]);
   const [maint, setMaint] = useState(false);
+  const [redOnHold, setRedOnHold] = useState(false);
+  const [redemptions, setRedemptions] = useState<(RedemptionRequest & { profile?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function refresh() {
-    const [pp, up, m] = await Promise.all([listProfiles(), listPendingUpgrades(), getMaintenance()]);
-    setProfiles(pp); setPending(up); setMaint(m); setLoading(false);
+    const [pp, up, settings, rd] = await Promise.all([
+      listProfiles(),
+      listPendingUpgrades(),
+      getSystemSettings(),
+      listPendingRedemptions(),
+    ]);
+    setProfiles(pp); setPending(up);
+    setMaint(settings.maintenance);
+    setRedOnHold(settings.redemptions_on_hold);
+    setRedemptions(rd);
+    setLoading(false);
   }
   useEffect(() => { refresh(); }, []);
 
@@ -86,6 +97,11 @@ function SupervisorDashboard() {
     const next = !maint;
     setMaint(next);
     await setMaintenance(next);
+  }
+  async function toggleRedemptions() {
+    const next = !redOnHold;
+    setRedOnHold(next);
+    await setRedemptionsOnHold(next);
   }
 
   async function approve(req: UpgradeRequest) {
@@ -97,6 +113,18 @@ function SupervisorDashboard() {
   async function reject(req: UpgradeRequest) {
     setBusy(req.id);
     await rejectUpgrade(req);
+    setBusy(null);
+    refresh();
+  }
+  async function approveRed(req: RedemptionRequest) {
+    setBusy(req.id);
+    await approveRedemption(req);
+    setBusy(null);
+    refresh();
+  }
+  async function rejectRed(req: RedemptionRequest) {
+    setBusy(req.id);
+    await rejectRedemption(req);
     setBusy(null);
     refresh();
   }
