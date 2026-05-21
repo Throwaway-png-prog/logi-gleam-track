@@ -321,3 +321,60 @@ export async function rejectRedemption(req: RedemptionRequest) {
 export function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+// --- Jobs ---
+export async function listJobs(): Promise<Job[]> {
+  const { data } = await supabase
+    .from("jobs" as any)
+    .select("*")
+    .eq("active", true)
+    .order("created_at", { ascending: true });
+  return (data as unknown as Job[]) ?? [];
+}
+
+export async function todaysCompletions(userId: string): Promise<JobCompletion[]> {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const { data } = await supabase
+    .from("job_completions" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .gte("created_at", start.toISOString())
+    .order("created_at", { ascending: false });
+  return (data as unknown as JobCompletion[]) ?? [];
+}
+
+export async function recentCompletions(userId: string, limit = 10): Promise<(JobCompletion & { job?: Job })[]> {
+  const { data } = await supabase
+    .from("job_completions" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const rows = (data as unknown as JobCompletion[]) ?? [];
+  if (rows.length === 0) return [];
+  const jobIds = [...new Set(rows.map((r) => r.job_id))];
+  const { data: jobs } = await supabase.from("jobs" as any).select("*").in("id", jobIds);
+  const map = new Map((jobs as unknown as Job[] | null ?? []).map((j) => [j.id, j]));
+  return rows.map((r) => ({ ...r, job: map.get(r.job_id) }));
+}
+
+export async function completeJob(profile: Profile, job: Job): Promise<Profile> {
+  const { error: insErr } = await supabase.from("job_completions" as any).insert({
+    user_id: profile.id,
+    job_id: job.id,
+    points_earned: job.points,
+    status: "approved",
+  } as any);
+  if (insErr) throw insErr;
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      points: profile.points + job.points,
+      units_today: profile.units_today + 1,
+    })
+    .eq("id", profile.id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Profile;
+}
