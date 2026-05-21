@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, KeyRound, CheckCircle2, Loader2, Boxes, AlertCircle } from "lucide-react";
+import { Phone, KeyRound, CheckCircle2, Loader2, Boxes, AlertCircle, User } from "lucide-react";
 import { findByPhone, registerProfile, loginProfile, setSessionId, type Profile } from "@/lib/api";
 
-type Step = "phone" | "pin" | "done";
+type Step = "phone" | "name" | "pin" | "done";
 
 export function Registration({ onComplete }: { onComplete: (u: Profile) => void }) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
     try {
       const existing = await findByPhone(phone);
       setMode(existing ? "login" : "register");
-      setStep("pin");
+      setStep(existing ? "pin" : "name");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
     } finally {
@@ -46,7 +47,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
         onComplete(u);
         return;
       }
-      const u = await registerProfile(phone, pin);
+      const u = await registerProfile(phone, pin, fullName.trim());
       setProfile(u);
       setSessionId(u.id);
       setStep("done");
