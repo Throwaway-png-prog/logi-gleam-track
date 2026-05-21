@@ -1,26 +1,39 @@
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Registration } from "@/components/Registration";
+import { Dashboard } from "@/components/Dashboard";
+import { getUser, type User } from "@/lib/db";
 
 export const Route = createFileRoute("/")({
   component: Index,
+  head: () => ({
+    meta: [
+      { title: "LogiBack — Warehouse workflow tracking" },
+      { name: "description", content: "Mobile-first warehouse workflow tracking. Scan units, earn points, climb tiers." },
+      { name: "theme-color", content: "#0a1f17" },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
-
 function Index() {
-  return <PlaceholderIndex />;
+  const [user, setUser] = useState<User | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    getUser().then((u) => {
+      setUser(u);
+      setLoaded(true);
+    });
+  }, []);
+
+  if (!loaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="size-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) return <Registration onComplete={(u) => setUser(u)} />;
+  return <Dashboard user={user} setUser={setUser} onLogout={() => setUser(null)} />;
 }
