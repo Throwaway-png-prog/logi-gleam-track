@@ -166,6 +166,75 @@ function SupervisorDashboard() {
         </span>
       </motion.button>
 
+      <motion.button
+        whileTap={{ scale: 0.99 }}
+        onClick={toggleRedemptions}
+        className={`w-full glass rounded-2xl p-4 mb-5 flex items-center justify-between border ${
+          redOnHold ? "border-destructive/50 bg-destructive/10" : "border-gold/40 bg-gold/5"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <PauseCircle className={`size-5 ${redOnHold ? "text-destructive" : "text-gold"}`} />
+          <div className="text-left">
+            <p className="font-semibold">Redemptions: {redOnHold ? "On Hold" : "Active"}</p>
+            <p className="text-xs text-muted-foreground">
+              {redOnHold ? "Workers cannot request payouts." : "Workers can request payouts."}
+            </p>
+          </div>
+        </div>
+        <span className={`text-xs font-bold uppercase tracking-wider ${redOnHold ? "text-destructive" : "text-gold"}`}>
+          {redOnHold ? "PAUSED" : "LIVE"}
+        </span>
+      </motion.button>
+
+      <section className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Wallet className="size-4 text-gold" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider">Redemption queue ({redemptions.length})</h2>
+        </div>
+        {redemptions.length === 0 ? (
+          <div className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">No pending redemptions.</div>
+        ) : (
+          <ul className="space-y-3">
+            {redemptions.map((r) => (
+              <li key={r.id} className="glass rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold font-mono">{r.profile?.worker_id ?? "Unknown"}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{r.profile?.phone}</p>
+                    <p className="text-sm mt-2">
+                      <span className="text-gradient-primary font-semibold">{r.points_redeemed.toLocaleString()} pts</span>
+                      <span className="text-muted-foreground"> → </span>
+                      <span className="text-gradient-gold font-semibold">KSh {Number(r.ksh_value).toLocaleString()}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => rejectRed(r)}
+                      disabled={busy === r.id}
+                      className="size-11 rounded-xl bg-destructive/15 text-destructive flex items-center justify-center active:scale-95 disabled:opacity-50"
+                      aria-label="Reject"
+                    >
+                      <X className="size-5" />
+                    </button>
+                    <button
+                      onClick={() => approveRed(r)}
+                      disabled={busy === r.id}
+                      className="size-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 disabled:opacity-50"
+                      aria-label="Approve"
+                    >
+                      {busy === r.id ? <Loader2 className="size-5 animate-spin" /> : <Check className="size-5" />}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Inbox className="size-4 text-gold" />
