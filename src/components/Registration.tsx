@@ -1,26 +1,60 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, KeyRound, CheckCircle2, Loader2, Boxes } from "lucide-react";
-import { createUser, type User } from "@/lib/db";
+import { Phone, KeyRound, CheckCircle2, Loader2, Boxes, AlertCircle } from "lucide-react";
+import { findByPhone, registerProfile, loginProfile, setSessionId, type Profile } from "@/lib/api";
 
 type Step = "phone" | "pin" | "done";
 
-export function Registration({ onComplete }: { onComplete: (u: User) => void }) {
+export function Registration({ onComplete }: { onComplete: (u: Profile) => void }) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"register" | "login">("register");
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   const phoneValid = phone.replace(/\D/g, "").length >= 8;
+
+  async function continuePhone() {
+    setLoading(true);
+    setError(null);
+    try {
+      const existing = await findByPhone(phone);
+      setMode(existing ? "login" : "register");
+      setStep("pin");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function submitPin() {
     if (pin.length !== 4) return;
     setLoading(true);
-    const u = await createUser(phone, pin);
-    setUser(u);
-    setLoading(false);
-    setStep("done");
+    setError(null);
+    try {
+      if (mode === "login") {
+        const u = await loginProfile(phone, pin);
+        if (!u) {
+          setError("Incorrect PIN");
+          setLoading(false);
+          return;
+        }
+        setSessionId(u.id);
+        onComplete(u);
+        return;
+      }
+      const u = await registerProfile(phone, pin);
+      setProfile(u);
+      setSessionId(u.id);
+      setStep("done");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not create account");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -43,34 +77,41 @@ export function Registration({ onComplete }: { onComplete: (u: User) => void }) 
         <AnimatePresence mode="wait">
           {step === "phone" && (
             <motion.div key="phone" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <label className="text-xs uppercase tracking-widest text-muted-foreground">Step 1 of 2</label>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">Sign in or register</label>
               <h2 className="text-xl font-semibold mt-1 mb-5">Your phone number</h2>
               <div className="relative">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
                 <input
                   type="tel"
                   inputMode="tel"
-                  placeholder="+1 555 0123 456"
+                  placeholder="+254 7XX XXX XXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+              {error && <ErrorBox msg={error} />}
               <button
-                disabled={!phoneValid}
-                onClick={() => setStep("pin")}
-                className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 disabled:shadow-none active:scale-[0.98] transition"
+                disabled={!phoneValid || loading}
+                onClick={continuePhone}
+                className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 disabled:shadow-none active:scale-[0.98] transition flex items-center justify-center gap-2"
               >
-                Continue
+                {loading ? <Loader2 className="size-5 animate-spin" /> : "Continue"}
               </button>
             </motion.div>
           )}
 
           {step === "pin" && (
             <motion.div key="pin" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <label className="text-xs uppercase tracking-widest text-muted-foreground">Step 2 of 2</label>
-              <h2 className="text-xl font-semibold mt-1 mb-1">Create your 4-digit PIN</h2>
-              <p className="text-sm text-muted-foreground mb-5">Used to unlock your shift sessions.</p>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                {mode === "login" ? "Welcome back" : "New worker"}
+              </label>
+              <h2 className="text-xl font-semibold mt-1 mb-1">
+                {mode === "login" ? "Enter your PIN" : "Create your 4-digit PIN"}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                {mode === "login" ? "Used to unlock your account on this device." : "Keep it secret — you'll need it on any device."}
+              </p>
               <div className="relative">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
                 <input
@@ -83,17 +124,24 @@ export function Registration({ onComplete }: { onComplete: (u: User) => void }) 
                   className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground tracking-[0.8em] text-lg focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+              {error && <ErrorBox msg={error} />}
               <button
                 disabled={pin.length !== 4 || loading}
                 onClick={submitPin}
                 className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 active:scale-[0.98] transition flex items-center justify-center gap-2"
               >
-                {loading ? <Loader2 className="size-5 animate-spin" /> : "Create account"}
+                {loading ? <Loader2 className="size-5 animate-spin" /> : mode === "login" ? "Sign in" : "Create account"}
+              </button>
+              <button
+                onClick={() => { setStep("phone"); setPin(""); setError(null); }}
+                className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
+              >
+                Use a different number
               </button>
             </motion.div>
           )}
 
-          {step === "done" && user && (
+          {step === "done" && profile && (
             <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
               <motion.div
                 initial={{ scale: 0, rotate: -90 }}
@@ -107,10 +155,10 @@ export function Registration({ onComplete }: { onComplete: (u: User) => void }) 
               <p className="text-sm text-muted-foreground text-center mt-1">Your Worker ID</p>
               <div className="mt-4 rounded-2xl border border-gold/40 bg-gradient-to-br from-gold/10 to-transparent p-5 text-center">
                 <p className="text-xs uppercase tracking-[0.3em] text-gold">Worker ID</p>
-                <p className="text-3xl font-bold text-gradient-gold mt-2 font-mono">{user.id}</p>
+                <p className="text-3xl font-bold text-gradient-gold mt-2 font-mono">{profile.worker_id}</p>
               </div>
               <button
-                onClick={() => onComplete(user)}
+                onClick={() => onComplete(profile)}
                 className="mt-6 w-full h-14 rounded-xl bg-gradient-gold text-gold-foreground font-semibold shadow-gold active:scale-[0.98] transition"
               >
                 Enter dashboard
@@ -120,7 +168,16 @@ export function Registration({ onComplete }: { onComplete: (u: User) => void }) 
         </AnimatePresence>
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground/70">Demo simulation. No real data is transmitted.</p>
+      <p className="mt-6 text-xs text-muted-foreground/70">Demo simulation. Phone + PIN only.</p>
+    </div>
+  );
+}
+
+function ErrorBox({ msg }: { msg: string }) {
+  return (
+    <div className="mt-4 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+      <AlertCircle className="size-4 shrink-0" />
+      <span>{msg}</span>
     </div>
   );
 }

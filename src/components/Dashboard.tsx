@@ -1,83 +1,66 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { LogOut, Trophy, TrendingUp, Crown } from "lucide-react";
+import { LogOut, Trophy, TrendingUp, Crown, ArrowUpRight, Wrench } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { ScanButton } from "./ScanButton";
 import { ActivityFeed } from "./ActivityFeed";
 import {
-  addLog, generateBatch, getRecentLogs, getTodayUnits, saveUser, resetAll,
-  type User, type LogEntry,
-} from "@/lib/db";
+  loadProfile, logUnit, recentLogs, getMaintenance, setSessionId,
+  type Profile, type LogEntry,
+} from "@/lib/api";
 import { getTier, getNextTier } from "@/lib/tiers";
 
 export function Dashboard({ user, setUser, onLogout }: {
-  user: User; setUser: (u: User) => void; onLogout: () => void;
+  user: Profile; setUser: (u: Profile) => void; onLogout: () => void;
 }) {
-  const [today, setToday] = useState(0);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const tier = useMemo(() => getTier(user.totalUnits), [user.totalUnits]);
+  const [maintenance, setMaint] = useState(false);
+  const tier = useMemo(() => getTier(user.tier), [user.tier]);
   const nextTier = getNextTier(tier.name);
 
   useEffect(() => {
     (async () => {
-      setToday(await getTodayUnits());
-      setLogs(await getRecentLogs());
+      const fresh = await loadProfile(user.id);
+      if (fresh) setUser(fresh);
+      setLogs(await recentLogs(user.id));
+      setMaint(await getMaintenance());
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Supervisor daily bonus
-  useEffect(() => {
-    const todayKey = new Date().toISOString().slice(0, 10);
-    if (tier.dailyBonus && user.bonusGivenOn !== todayKey) {
-      const updated: User = {
-        ...user,
-        totalPoints: user.totalPoints + tier.dailyBonus,
-        bonusGivenOn: todayKey,
-      };
-      setUser(updated);
-      saveUser(updated);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tier.name]);
-
-  const remaining = Math.max(0, tier.dailyLimit - today);
-  const progress = Math.min(100, (today / tier.dailyLimit) * 100);
-
-  // pleasant fake stats
-  const weekUnits = useMemo(() => 342 + (user.totalUnits % 250), [user.totalUnits]);
-  const rank = useMemo(() => Math.max(3, 42 - Math.floor(user.totalUnits / 80)), [user.totalUnits]);
+  const remaining = Math.max(0, tier.dailyLimit - user.units_today);
+  const progress = Math.min(100, (user.units_today / tier.dailyLimit) * 100);
+  const weekUnits = useMemo(() => 120 + (user.points % 400), [user.points]);
+  const rank = useMemo(() => Math.max(3, 42 - Math.floor(user.points / 5000)), [user.points]);
 
   async function handleScan() {
-    const entry: LogEntry = {
-      batch: generateBatch(),
-      timestamp: Date.now(),
-      points: tier.pointsPerUnit,
-      tier: tier.name,
-    };
-    await addLog(entry);
-    const updated: User = {
-      ...user,
-      totalUnits: user.totalUnits + 1,
-      totalPoints: user.totalPoints + tier.pointsPerUnit,
-    };
+    const updated = await logUnit(user, tier.pointsPerUnit);
     setUser(updated);
-    await saveUser(updated);
-    setToday((n) => n + 1);
-    setLogs(await getRecentLogs());
+    setLogs(await recentLogs(user.id));
   }
 
-  async function handleLogout() {
-    await resetAll();
+  function handleLogout() {
+    setSessionId(null);
     onLogout();
   }
 
   return (
     <div className="min-h-screen px-5 pt-6 pb-24 max-w-xl mx-auto">
-      {/* Header */}
+      {maintenance && (
+        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold/10 p-4">
+          <Wrench className="size-5 text-gold shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">System under maintenance</p>
+            <p className="text-xs text-muted-foreground">Logging is temporarily disabled.</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Worker</p>
-          <p className="font-mono font-semibold text-lg">{user.id}</p>
+          <p className="font-mono font-semibold text-lg">{user.worker_id}</p>
         </div>
         <button
           onClick={handleLogout}
@@ -88,7 +71,6 @@ export function Dashboard({ user, setUser, onLogout }: {
         </button>
       </div>
 
-      {/* Tier card */}
       <motion.div
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         className="glass rounded-3xl p-5 shadow-elegant mb-5 relative overflow-hidden"
@@ -107,16 +89,15 @@ export function Dashboard({ user, setUser, onLogout }: {
           </div>
           <div className="text-right">
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Points</p>
-            <AnimatedCounter value={user.totalPoints} className="text-3xl font-bold text-gradient-primary" />
+            <AnimatedCounter value={user.points} className="text-3xl font-bold text-gradient-primary" />
           </div>
         </div>
 
-        {/* Today progress */}
         <div className="mt-5 relative">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-muted-foreground">Today's units</span>
             <span className="font-semibold">
-              <AnimatedCounter value={today} />/{tier.dailyLimit}
+              <AnimatedCounter value={user.units_today} />/{tier.dailyLimit}
             </span>
           </div>
           <div className="h-3 rounded-full bg-background/60 overflow-hidden">
@@ -128,15 +109,22 @@ export function Dashboard({ user, setUser, onLogout }: {
             />
           </div>
           {nextTier && (
-            <p className="text-xs text-muted-foreground mt-2">
-              {nextTier.unlockAt - user.totalUnits} units to unlock{" "}
-              <span className="text-gold font-medium">{nextTier.name}</span>
-            </p>
+            <Link
+              to="/upgrade"
+              className="mt-3 flex items-center justify-between rounded-xl border border-gold/30 bg-gold/5 p-3 active:scale-[0.99] transition"
+            >
+              <div>
+                <p className="text-xs uppercase tracking-wider text-gold">Upgrade available</p>
+                <p className="text-sm">
+                  Unlock <span className="font-semibold">{nextTier.name}</span> · KSh {nextTier.priceKsh?.toLocaleString()}
+                </p>
+              </div>
+              <ArrowUpRight className="size-5 text-gold" />
+            </Link>
           )}
         </div>
       </motion.div>
 
-      {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="glass rounded-2xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
@@ -154,10 +142,9 @@ export function Dashboard({ user, setUser, onLogout }: {
         </div>
       </div>
 
-      {/* Scan */}
       <div className="mb-6">
         <ScanButton
-          disabled={remaining === 0}
+          disabled={remaining === 0 || maintenance}
           pointsPerUnit={tier.pointsPerUnit}
           remaining={remaining}
           onScan={handleScan}

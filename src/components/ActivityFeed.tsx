@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Package } from "lucide-react";
-import { formatTime, type LogEntry } from "@/lib/db";
+import { formatTime, type LogEntry } from "@/lib/api";
 
 export function ActivityFeed({ logs }: { logs: LogEntry[] }) {
   return (
@@ -10,13 +10,13 @@ export function ActivityFeed({ logs }: { logs: LogEntry[] }) {
         <span className="text-xs text-muted-foreground">{logs.length}</span>
       </div>
       {logs.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-6 text-center">No units scanned yet today.</p>
+        <p className="text-sm text-muted-foreground py-6 text-center">No units scanned yet.</p>
       ) : (
         <ul className="space-y-2">
           <AnimatePresence initial={false}>
             {logs.map((l) => (
               <motion.li
-                key={l.id ?? l.batch}
+                key={l.id}
                 layout
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -27,10 +27,10 @@ export function ActivityFeed({ logs }: { logs: LogEntry[] }) {
                   <Package className="size-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-mono truncate">Batch #{l.batch}</p>
-                  <p className="text-xs text-muted-foreground">logged at {formatTime(l.timestamp)}</p>
+                  <p className="text-sm font-mono truncate">{l.batch_number}</p>
+                  <p className="text-xs text-muted-foreground">logged at {formatTime(l.created_at)}</p>
                 </div>
-                <span className="text-sm font-semibold text-gold">+{l.points}</span>
+                <span className="text-sm font-semibold text-gold">+{l.points_earned}</span>
               </motion.li>
             ))}
           </AnimatePresence>
