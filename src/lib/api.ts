@@ -3,12 +3,34 @@ import { supabase } from "@/integrations/supabase/client";
 export interface Profile {
   id: string;
   worker_id: string;
+  full_name: string;
+  role: string;
   phone: string;
   pin: string;
   tier: string;
   points: number;
   units_today: number;
   last_reset_date: string;
+  created_at: string;
+}
+
+export interface Job {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  points: number;
+  category: string;
+  active: boolean;
+  created_at: string;
+}
+
+export interface JobCompletion {
+  id: string;
+  user_id: string;
+  job_id: string;
+  points_earned: number;
+  status: string;
   created_at: string;
 }
 
@@ -59,13 +81,12 @@ export async function findByPhone(phone: string): Promise<Profile | null> {
   return (data as Profile) ?? null;
 }
 
-export async function registerProfile(phone: string, pin: string): Promise<Profile> {
-  // collision-retry on worker_id
+export async function registerProfile(phone: string, pin: string, full_name: string): Promise<Profile> {
   for (let i = 0; i < 5; i++) {
     const worker_id = genWorkerId();
     const { data, error } = await supabase
       .from("profiles")
-      .insert({ phone, pin, worker_id, tier: "Starter", points: 0, units_today: 0, last_reset_date: todayStr() })
+      .insert({ phone, pin, worker_id, full_name, role: "worker", tier: "Starter", points: 0, units_today: 0, last_reset_date: todayStr() } as any)
       .select()
       .single();
     if (!error && data) return data as Profile;
