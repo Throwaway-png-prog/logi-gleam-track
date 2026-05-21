@@ -46,36 +46,117 @@ export type Database = {
           },
         ]
       }
+      job_completions: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          points_earned: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          points_earned: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          points_earned?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_completions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_completions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string
+          id: string
+          image_url: string
+          points: number
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description: string
+          id?: string
+          image_url: string
+          points: number
+          title: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string
+          points?: number
+          title?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
+          full_name: string
           id: string
           last_reset_date: string
           phone: string
           pin: string
           points: number
+          role: string
           tier: string
           units_today: number
           worker_id: string
         }
         Insert: {
           created_at?: string
+          full_name?: string
           id?: string
           last_reset_date?: string
           phone: string
           pin: string
           points?: number
+          role?: string
           tier?: string
           units_today?: number
           worker_id: string
         }
         Update: {
           created_at?: string
+          full_name?: string
           id?: string
           last_reset_date?: string
           phone?: string
           pin?: string
           points?: number
+          role?: string
           tier?: string
           units_today?: number
           worker_id?: string
