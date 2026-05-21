@@ -151,6 +151,22 @@ export function Dashboard({ user, setUser, onLogout }: {
         />
       </div>
 
+      <Link
+        to="/redeem"
+        className="mb-6 flex items-center justify-between glass rounded-2xl p-4 border border-gold/30 active:scale-[0.99] transition"
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
+            <Wallet className="size-5 text-gold-foreground" />
+          </div>
+          <div>
+            <p className="font-semibold">Redeem points</p>
+            <p className="text-xs text-muted-foreground">Cash out · 1 pt = KSh 1</p>
+          </div>
+        </div>
+        <ArrowUpRight className="size-5 text-gold" />
+      </Link>
+
       <ActivityFeed logs={logs} />
     </div>
   );
