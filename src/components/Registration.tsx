@@ -102,6 +102,34 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
             </motion.div>
           )}
 
+          {step === "name" && (
+            <motion.div key="name" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">New worker</label>
+              <h2 className="text-xl font-semibold mt-1 mb-1">Your full name</h2>
+              <p className="text-sm text-muted-foreground mb-5">This is what your supervisor and team will see.</p>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  autoCapitalize="words"
+                  placeholder="e.g. Amina Otieno"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <button
+                disabled={fullName.trim().length < 2}
+                onClick={() => setStep("pin")}
+                className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 active:scale-[0.98] transition"
+              >
+                Continue
+              </button>
+            </motion.div>
+          )}
+
+
+
           {step === "pin" && (
             <motion.div key="pin" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">
