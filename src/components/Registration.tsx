@@ -197,7 +197,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
         </AnimatePresence>
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground/70">Demo simulation. Phone + PIN only.</p>
+      <p className="mt-6 text-xs text-muted-foreground/70">Earn while you work — every task is real cash.</p>
     </div>
   );
 }
