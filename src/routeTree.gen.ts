@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
+import { Route as RedeemRouteImport } from './routes/redeem'
 import { Route as IndexRouteImport } from './routes/index'
 
 const UpgradeRoute = UpgradeRouteImport.update({
@@ -23,6 +24,11 @@ const SupervisorRoute = SupervisorRouteImport.update({
   path: '/supervisor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RedeemRoute = RedeemRouteImport.update({
+  id: '/redeem',
+  path: '/redeem',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,30 +37,34 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/supervisor' | '/upgrade'
+  fullPaths: '/' | '/redeem' | '/supervisor' | '/upgrade'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/supervisor' | '/upgrade'
-  id: '__root__' | '/' | '/supervisor' | '/upgrade'
+  to: '/' | '/redeem' | '/supervisor' | '/upgrade'
+  id: '__root__' | '/' | '/redeem' | '/supervisor' | '/upgrade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RedeemRoute: typeof RedeemRoute
   SupervisorRoute: typeof SupervisorRoute
   UpgradeRoute: typeof UpgradeRoute
 }
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupervisorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/redeem': {
+      id: '/redeem'
+      path: '/redeem'
+      fullPath: '/redeem'
+      preLoaderRoute: typeof RedeemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RedeemRoute: RedeemRoute,
   SupervisorRoute: SupervisorRoute,
   UpgradeRoute: UpgradeRoute,
 }

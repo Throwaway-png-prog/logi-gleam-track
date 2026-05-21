@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
-  ShieldCheck, Loader2, Users, Inbox, Power, Check, X, ArrowLeft, AlertCircle,
+  ShieldCheck, Loader2, Users, Inbox, Power, Check, X, ArrowLeft, AlertCircle, Wallet, PauseCircle,
 } from "lucide-react";
 import {
   listProfiles, listPendingUpgrades, approveUpgrade, rejectUpgrade,
-  getMaintenance, setMaintenance,
-  type Profile, type UpgradeRequest,
+  listPendingRedemptions, approveRedemption, rejectRedemption,
+  getSystemSettings, setMaintenance, setRedemptionsOnHold,
+  type Profile, type UpgradeRequest, type RedemptionRequest,
 } from "@/lib/api";
 
 const SUPERVISOR_PIN = "123456";
@@ -72,12 +73,23 @@ function SupervisorDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [pending, setPending] = useState<(UpgradeRequest & { profile?: Profile })[]>([]);
   const [maint, setMaint] = useState(false);
+  const [redOnHold, setRedOnHold] = useState(false);
+  const [redemptions, setRedemptions] = useState<(RedemptionRequest & { profile?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function refresh() {
-    const [pp, up, m] = await Promise.all([listProfiles(), listPendingUpgrades(), getMaintenance()]);
-    setProfiles(pp); setPending(up); setMaint(m); setLoading(false);
+    const [pp, up, settings, rd] = await Promise.all([
+      listProfiles(),
+      listPendingUpgrades(),
+      getSystemSettings(),
+      listPendingRedemptions(),
+    ]);
+    setProfiles(pp); setPending(up);
+    setMaint(settings.maintenance);
+    setRedOnHold(settings.redemptions_on_hold);
+    setRedemptions(rd);
+    setLoading(false);
   }
   useEffect(() => { refresh(); }, []);
 
@@ -85,6 +97,11 @@ function SupervisorDashboard() {
     const next = !maint;
     setMaint(next);
     await setMaintenance(next);
+  }
+  async function toggleRedemptions() {
+    const next = !redOnHold;
+    setRedOnHold(next);
+    await setRedemptionsOnHold(next);
   }
 
   async function approve(req: UpgradeRequest) {
@@ -96,6 +113,18 @@ function SupervisorDashboard() {
   async function reject(req: UpgradeRequest) {
     setBusy(req.id);
     await rejectUpgrade(req);
+    setBusy(null);
+    refresh();
+  }
+  async function approveRed(req: RedemptionRequest) {
+    setBusy(req.id);
+    await approveRedemption(req);
+    setBusy(null);
+    refresh();
+  }
+  async function rejectRed(req: RedemptionRequest) {
+    setBusy(req.id);
+    await rejectRedemption(req);
     setBusy(null);
     refresh();
   }
@@ -136,6 +165,75 @@ function SupervisorDashboard() {
           {maint ? "OFF" : "ON"}
         </span>
       </motion.button>
+
+      <motion.button
+        whileTap={{ scale: 0.99 }}
+        onClick={toggleRedemptions}
+        className={`w-full glass rounded-2xl p-4 mb-5 flex items-center justify-between border ${
+          redOnHold ? "border-destructive/50 bg-destructive/10" : "border-gold/40 bg-gold/5"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <PauseCircle className={`size-5 ${redOnHold ? "text-destructive" : "text-gold"}`} />
+          <div className="text-left">
+            <p className="font-semibold">Redemptions: {redOnHold ? "On Hold" : "Active"}</p>
+            <p className="text-xs text-muted-foreground">
+              {redOnHold ? "Workers cannot request payouts." : "Workers can request payouts."}
+            </p>
+          </div>
+        </div>
+        <span className={`text-xs font-bold uppercase tracking-wider ${redOnHold ? "text-destructive" : "text-gold"}`}>
+          {redOnHold ? "PAUSED" : "LIVE"}
+        </span>
+      </motion.button>
+
+      <section className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Wallet className="size-4 text-gold" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider">Redemption queue ({redemptions.length})</h2>
+        </div>
+        {redemptions.length === 0 ? (
+          <div className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">No pending redemptions.</div>
+        ) : (
+          <ul className="space-y-3">
+            {redemptions.map((r) => (
+              <li key={r.id} className="glass rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold font-mono">{r.profile?.worker_id ?? "Unknown"}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{r.profile?.phone}</p>
+                    <p className="text-sm mt-2">
+                      <span className="text-gradient-primary font-semibold">{r.points_redeemed.toLocaleString()} pts</span>
+                      <span className="text-muted-foreground"> → </span>
+                      <span className="text-gradient-gold font-semibold">KSh {Number(r.ksh_value).toLocaleString()}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => rejectRed(r)}
+                      disabled={busy === r.id}
+                      className="size-11 rounded-xl bg-destructive/15 text-destructive flex items-center justify-center active:scale-95 disabled:opacity-50"
+                      aria-label="Reject"
+                    >
+                      <X className="size-5" />
+                    </button>
+                    <button
+                      onClick={() => approveRed(r)}
+                      disabled={busy === r.id}
+                      className="size-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 disabled:opacity-50"
+                      aria-label="Approve"
+                    >
+                      {busy === r.id ? <Loader2 className="size-5 animate-spin" /> : <Check className="size-5" />}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
 
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">

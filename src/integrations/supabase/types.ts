@@ -82,20 +82,61 @@ export type Database = {
         }
         Relationships: []
       }
+      redemption_requests: {
+        Row: {
+          created_at: string
+          id: string
+          ksh_value: number
+          points_redeemed: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ksh_value: number
+          points_redeemed: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ksh_value?: number
+          points_redeemed?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redemption_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           id: number
           maintenance: boolean
+          redemptions_on_hold: boolean
           updated_at: string
         }
         Insert: {
           id?: number
           maintenance?: boolean
+          redemptions_on_hold?: boolean
           updated_at?: string
         }
         Update: {
           id?: number
           maintenance?: boolean
+          redemptions_on_hold?: boolean
           updated_at?: string
         }
         Relationships: []
