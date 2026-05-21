@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Registration } from "@/components/Registration";
 import { Dashboard } from "@/components/Dashboard";
-import { getUser, type User } from "@/lib/db";
+import { getSessionId, loadProfile, type Profile } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -16,14 +16,15 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Profile | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    getUser().then((u) => {
-      setUser(u);
+    (async () => {
+      const id = getSessionId();
+      if (id) setUser(await loadProfile(id));
       setLoaded(true);
-    });
+    })();
   }, []);
 
   if (!loaded) {
