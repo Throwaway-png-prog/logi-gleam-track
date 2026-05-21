@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, KeyRound, CheckCircle2, Loader2, Boxes, AlertCircle } from "lucide-react";
+import { Phone, KeyRound, CheckCircle2, Loader2, Boxes, AlertCircle, User } from "lucide-react";
 import { findByPhone, registerProfile, loginProfile, setSessionId, type Profile } from "@/lib/api";
 
-type Step = "phone" | "pin" | "done";
+type Step = "phone" | "name" | "pin" | "done";
 
 export function Registration({ onComplete }: { onComplete: (u: Profile) => void }) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
     try {
       const existing = await findByPhone(phone);
       setMode(existing ? "login" : "register");
-      setStep("pin");
+      setStep(existing ? "pin" : "name");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
     } finally {
@@ -46,7 +47,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
         onComplete(u);
         return;
       }
-      const u = await registerProfile(phone, pin);
+      const u = await registerProfile(phone, pin, fullName.trim());
       setProfile(u);
       setSessionId(u.id);
       setStep("done");
@@ -100,6 +101,34 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
               </button>
             </motion.div>
           )}
+
+          {step === "name" && (
+            <motion.div key="name" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">New worker</label>
+              <h2 className="text-xl font-semibold mt-1 mb-1">Your full name</h2>
+              <p className="text-sm text-muted-foreground mb-5">This is what your supervisor and team will see.</p>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  autoCapitalize="words"
+                  placeholder="e.g. Amina Otieno"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <button
+                disabled={fullName.trim().length < 2}
+                onClick={() => setStep("pin")}
+                className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 active:scale-[0.98] transition"
+              >
+                Continue
+              </button>
+            </motion.div>
+          )}
+
+
 
           {step === "pin" && (
             <motion.div key="pin" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -168,7 +197,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
         </AnimatePresence>
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground/70">Demo simulation. Phone + PIN only.</p>
+      <p className="mt-6 text-xs text-muted-foreground/70">Earn while you work — every task is real cash.</p>
     </div>
   );
 }

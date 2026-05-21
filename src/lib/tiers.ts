@@ -9,10 +9,10 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { name: "Starter", dailyLimit: 50, pointsPerUnit: 60 },
-  { name: "Operator", dailyLimit: 200, pointsPerUnit: 150, priceKsh: 5000 },
-  { name: "Controller", dailyLimit: 500, pointsPerUnit: 300, priceKsh: 15000 },
-  { name: "Supervisor", dailyLimit: 1000, pointsPerUnit: 600, dailyBonus: 2000, priceKsh: 50000 },
+  { name: "Starter", dailyLimit: 1, pointsPerUnit: 60 },
+  { name: "Operator", dailyLimit: 8, pointsPerUnit: 150, priceKsh: 5000 },
+  { name: "Controller", dailyLimit: 20, pointsPerUnit: 300, priceKsh: 15000 },
+  { name: "Supervisor", dailyLimit: 40, pointsPerUnit: 600, dailyBonus: 2000, priceKsh: 50000 },
 ];
 
 export function getTier(name: string): Tier {
