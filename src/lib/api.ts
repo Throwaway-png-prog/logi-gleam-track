@@ -192,6 +192,18 @@ export async function rejectUpgrade(req: UpgradeRequest) {
 }
 
 // --- System settings ---
+export async function getSystemSettings(): Promise<{ maintenance: boolean; redemptions_on_hold: boolean }> {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("maintenance, redemptions_on_hold" as any)
+    .eq("id", 1)
+    .maybeSingle();
+  return {
+    maintenance: Boolean((data as any)?.maintenance),
+    redemptions_on_hold: Boolean((data as any)?.redemptions_on_hold),
+  };
+}
+
 export async function getMaintenance(): Promise<boolean> {
   const { data } = await supabase.from("system_settings").select("maintenance").eq("id", 1).maybeSingle();
   return Boolean(data?.maintenance);
@@ -201,6 +213,88 @@ export async function setMaintenance(on: boolean) {
   await supabase
     .from("system_settings")
     .upsert({ id: 1, maintenance: on, updated_at: new Date().toISOString() });
+}
+
+export async function setRedemptionsOnHold(on: boolean) {
+  await supabase
+    .from("system_settings")
+    .upsert({ id: 1, redemptions_on_hold: on, updated_at: new Date().toISOString() } as any);
+}
+
+// --- Redemptions ---
+export interface RedemptionRequest {
+  id: string;
+  user_id: string;
+  points_redeemed: number;
+  ksh_value: number;
+  status: "pending" | "completed" | "rejected" | "on_hold";
+  created_at: string;
+  updated_at: string;
+}
+
+export async function submitRedemption(user: Profile, points: number): Promise<Profile> {
+  if (points < 1000) throw new Error("Minimum redemption is 1,000 points");
+  if (points > user.points) throw new Error("Insufficient points");
+  const { error: insErr } = await supabase.from("redemption_requests" as any).insert({
+    user_id: user.id,
+    points_redeemed: points,
+    ksh_value: points,
+    status: "pending",
+  } as any);
+  if (insErr) throw insErr;
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ points: user.points - points })
+    .eq("id", user.id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Profile;
+}
+
+export async function myRedemptions(userId: string): Promise<RedemptionRequest[]> {
+  const { data } = await supabase
+    .from("redemption_requests" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return (data as unknown as RedemptionRequest[]) ?? [];
+}
+
+export async function listPendingRedemptions(): Promise<(RedemptionRequest & { profile?: Profile })[]> {
+  const { data } = await supabase
+    .from("redemption_requests" as any)
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  const reqs = (data as unknown as RedemptionRequest[]) ?? [];
+  if (reqs.length === 0) return [];
+  const ids = [...new Set(reqs.map((r) => r.user_id))];
+  const { data: profs } = await supabase.from("profiles").select("*").in("id", ids);
+  const map = new Map((profs as Profile[] | null ?? []).map((p) => [p.id, p]));
+  return reqs.map((r) => ({ ...r, profile: map.get(r.user_id) }));
+}
+
+export async function approveRedemption(req: RedemptionRequest) {
+  await supabase
+    .from("redemption_requests" as any)
+    .update({ status: "completed", updated_at: new Date().toISOString() } as any)
+    .eq("id", req.id);
+}
+
+export async function rejectRedemption(req: RedemptionRequest) {
+  await supabase
+    .from("redemption_requests" as any)
+    .update({ status: "rejected", updated_at: new Date().toISOString() } as any)
+    .eq("id", req.id);
+  const { data: prof } = await supabase.from("profiles").select("*").eq("id", req.user_id).single();
+  if (prof) {
+    const p = prof as Profile;
+    await supabase
+      .from("profiles")
+      .update({ points: p.points + req.points_redeemed })
+      .eq("id", p.id);
+  }
 }
 
 export function formatTime(ts: string) {
