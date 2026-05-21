@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
-  ShieldCheck, Loader2, Users, Inbox, Power, Check, X, ArrowLeft, AlertCircle,
+  ShieldCheck, Loader2, Users, Inbox, Power, Check, X, ArrowLeft, AlertCircle, Wallet, PauseCircle,
 } from "lucide-react";
 import {
   listProfiles, listPendingUpgrades, approveUpgrade, rejectUpgrade,
-  getMaintenance, setMaintenance,
-  type Profile, type UpgradeRequest,
+  listPendingRedemptions, approveRedemption, rejectRedemption,
+  getSystemSettings, setMaintenance, setRedemptionsOnHold,
+  type Profile, type UpgradeRequest, type RedemptionRequest,
 } from "@/lib/api";
 
 const SUPERVISOR_PIN = "123456";
