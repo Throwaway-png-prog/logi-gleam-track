@@ -121,42 +121,146 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
+      points_transactions: {
         Row: {
           created_at: string
+          delta: number
+          id: string
+          reason: string
+          ref_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          reason: string
+          ref_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          reason?: string
+          ref_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "points_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          active: boolean
+          brand: string
+          category: string
+          created_at: string
+          est_minutes: string
+          id: string
+          image_url: string
+          name: string
+          platform: string
+          points_reward: number
+          price_ksh: number
+        }
+        Insert: {
+          active?: boolean
+          brand: string
+          category: string
+          created_at?: string
+          est_minutes?: string
+          id?: string
+          image_url: string
+          name: string
+          platform: string
+          points_reward: number
+          price_ksh: number
+        }
+        Update: {
+          active?: boolean
+          brand?: string
+          category?: string
+          created_at?: string
+          est_minutes?: string
+          id?: string
+          image_url?: string
+          name?: string
+          platform?: string
+          points_reward?: number
+          price_ksh?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          display_name_changed_at: string | null
           full_name: string
           id: string
           last_reset_date: string
+          mpesa_number: string | null
+          mpesa_verified: boolean
           phone: string
           pin: string
           points: number
+          referral_code: string | null
+          reviews_approved: number
+          reviews_rejected: number
           role: string
+          theme_pref: string
           tier: string
           units_today: number
           worker_id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string
+          display_name_changed_at?: string | null
           full_name?: string
           id?: string
           last_reset_date?: string
+          mpesa_number?: string | null
+          mpesa_verified?: boolean
           phone: string
           pin: string
           points?: number
+          referral_code?: string | null
+          reviews_approved?: number
+          reviews_rejected?: number
           role?: string
+          theme_pref?: string
           tier?: string
           units_today?: number
           worker_id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string
+          display_name_changed_at?: string | null
           full_name?: string
           id?: string
           last_reset_date?: string
+          mpesa_number?: string | null
+          mpesa_verified?: boolean
           phone?: string
           pin?: string
           points?: number
+          referral_code?: string | null
+          reviews_approved?: number
+          reviews_rejected?: number
           role?: string
+          theme_pref?: string
           tier?: string
           units_today?: number
           worker_id?: string
@@ -194,6 +298,63 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "redemption_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_submissions: {
+        Row: {
+          created_at: string
+          id: string
+          points_reward: number
+          product_id: string
+          rating: number
+          rejection_reason: string | null
+          review_text: string
+          screenshot_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points_reward: number
+          product_id: string
+          rating: number
+          rejection_reason?: string | null
+          review_text: string
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points_reward?: number
+          product_id?: string
+          rating?: number
+          rejection_reason?: string | null
+          review_text?: string
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_submissions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_submissions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
