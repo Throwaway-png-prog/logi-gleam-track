@@ -1,13 +1,12 @@
 {
-  "name": "LogiBack",
-  "short_name": "LogiBack",
-  "description": "Warehouse workflow tracking",
+  "name": "LogiBack Earn",
+  "short_name": "LogiBack Earn",
+  "description": "Get paid to review products. Withdraw to M-Pesa.",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0a1f17",
   "theme_color": "#0a1f17",
+  "orientation": "portrait",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]

@@ -8,8 +8,8 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "LogiBack — Warehouse workflow tracking" },
-      { name: "description", content: "Mobile-first warehouse workflow tracking. Scan units, earn points, climb tiers." },
+      { title: "LogiBack Earn — Get paid to review products" },
+      { name: "description", content: "Earn real KSh by writing honest product reviews. Withdraw to M-Pesa from 1,000 points." },
       { name: "theme-color", content: "#0a1f17" },
     ],
   }),
@@ -22,7 +22,15 @@ function Index() {
   useEffect(() => {
     (async () => {
       const id = getSessionId();
-      if (id) setUser(await loadProfile(id));
+      if (id) {
+        const p = await loadProfile(id);
+        if (p) {
+          setUser(p);
+          if (typeof document !== "undefined" && p.theme_pref === "light") {
+            document.documentElement.classList.add("light");
+          }
+        }
+      }
       setLoaded(true);
     })();
   }, []);

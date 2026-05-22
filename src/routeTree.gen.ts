@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as RedeemRouteImport } from './routes/redeem'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ProductsRouteImport } from './routes/products'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProductsIdRouteImport } from './routes/products.$id'
 
 const UpgradeRoute = UpgradeRouteImport.update({
   id: '/upgrade',
@@ -29,41 +32,89 @@ const RedeemRoute = RedeemRouteImport.update({
   path: '/redeem',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductsIdRoute = ProductsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ProductsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/products': typeof ProductsRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
+  '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/products': typeof ProductsRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
+  '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/products': typeof ProductsRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
+  '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/redeem' | '/supervisor' | '/upgrade'
+  fullPaths:
+    | '/'
+    | '/products'
+    | '/profile'
+    | '/redeem'
+    | '/supervisor'
+    | '/upgrade'
+    | '/products/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/redeem' | '/supervisor' | '/upgrade'
-  id: '__root__' | '/' | '/redeem' | '/supervisor' | '/upgrade'
+  to:
+    | '/'
+    | '/products'
+    | '/profile'
+    | '/redeem'
+    | '/supervisor'
+    | '/upgrade'
+    | '/products/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/products'
+    | '/profile'
+    | '/redeem'
+    | '/supervisor'
+    | '/upgrade'
+    | '/products/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProductsRoute: typeof ProductsRouteWithChildren
+  ProfileRoute: typeof ProfileRoute
   RedeemRoute: typeof RedeemRoute
   SupervisorRoute: typeof SupervisorRoute
   UpgradeRoute: typeof UpgradeRoute
@@ -92,6 +143,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedeemRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products': {
+      id: '/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof ProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -99,11 +164,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/products/$id': {
+      id: '/products/$id'
+      path: '/$id'
+      fullPath: '/products/$id'
+      preLoaderRoute: typeof ProductsIdRouteImport
+      parentRoute: typeof ProductsRoute
+    }
   }
 }
 
+interface ProductsRouteChildren {
+  ProductsIdRoute: typeof ProductsIdRoute
+}
+
+const ProductsRouteChildren: ProductsRouteChildren = {
+  ProductsIdRoute: ProductsIdRoute,
+}
+
+const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
+  ProductsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProductsRoute: ProductsRouteWithChildren,
+  ProfileRoute: ProfileRoute,
   RedeemRoute: RedeemRoute,
   SupervisorRoute: SupervisorRoute,
   UpgradeRoute: UpgradeRoute,
@@ -111,3 +197,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
