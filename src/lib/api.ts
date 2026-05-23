@@ -21,6 +21,18 @@ export interface Profile {
   display_name_changed_at?: string | null;
   reviews_approved?: number;
   reviews_rejected?: number;
+  last_login_at?: string | null;
+  review_streak?: number;
+  last_review_date?: string | null;
+}
+
+export interface Message {
+  id: string;
+  title: string;
+  body: string;
+  audience: "all" | "tier" | "user";
+  audience_value: string | null;
+  created_at: string;
 }
 
 export interface Product {
