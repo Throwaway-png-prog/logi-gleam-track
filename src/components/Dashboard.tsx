@@ -170,7 +170,7 @@ export function Dashboard({ user, setUser, onLogout }: {
           <div className="-mx-5 mb-6 overflow-x-auto no-scrollbar">
             <div className="flex gap-3 px-5">
               {featured.map((p) => (
-                <Link key={p.id} to="/products" search={{ open: p.id } as any}
+                <Link key={p.id} to="/products"
                   className="shrink-0 w-56 glass rounded-2xl overflow-hidden active:scale-[0.98] transition">
                   <div className="h-32 bg-muted overflow-hidden">
                     <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
