@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Copy, Check, Sun, Moon, ShieldCheck, Award, Loader2, Trophy, Star, Wallet,
+  Copy, Check, Sun, Moon, ShieldCheck, Award, Loader2, Trophy, Wallet, Flame, Camera,
 } from "lucide-react";
 import {
-  getSessionId, loadProfile, updateProfile, myRedemptions, type Profile, type RedemptionRequest,
+  getSessionId, loadProfile, updateProfile, myRedemptions, uploadAvatar,
+  type Profile, type RedemptionRequest,
 } from "@/lib/api";
 import { formatKsh, formatPhoneKE, initialsOf, maskPhone, timeAgo } from "@/lib/format";
 import { getTier, getNextTier } from "@/lib/tiers";
+import { AppShell } from "@/components/AppShell";
+
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
