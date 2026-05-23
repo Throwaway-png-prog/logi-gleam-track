@@ -26,9 +26,9 @@ function UpgradePage() {
   useEffect(() => {
     (async () => {
       const id = getSessionId();
-      if (!id) { navigate({ to: "/" }); return; }
+      if (!id) { navigate({ to: "/app" }); return; }
       const p = await loadProfile(id);
-      if (!p) { navigate({ to: "/" }); return; }
+      if (!p) { navigate({ to: "/app" }); return; }
       setUser(p);
       setPending(await myPendingUpgrade(p.id));
     })();

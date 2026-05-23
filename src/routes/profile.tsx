@@ -37,7 +37,7 @@ function ProfilePage() {
 
   useEffect(() => {
     const sid = getSessionId();
-    if (!sid) { navigate({ to: "/" }); return; }
+    if (!sid) { navigate({ to: "/app" }); return; }
     Promise.all([loadProfile(sid), myRedemptions(sid)]).then(([u, r]) => {
       if (u) {
         setUser(u);

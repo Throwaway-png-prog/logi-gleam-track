@@ -38,7 +38,7 @@ function RedeemPage() {
 
   useEffect(() => {
     const id = getSessionId();
-    if (!id) { navigate({ to: "/" }); return; }
+    if (!id) { navigate({ to: "/app" }); return; }
     refresh(id);
   }, [navigate]);
 
