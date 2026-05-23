@@ -269,8 +269,10 @@ function ProfilePage() {
         )}
       </Card>
     </div>
+    </AppShell>
   );
 }
+
 
 function Card({ title, trailing, children }: { title: string; trailing?: React.ReactNode; children: React.ReactNode }) {
   return (
