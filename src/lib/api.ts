@@ -396,7 +396,7 @@ export async function listAvailableProducts(userId: string): Promise<Product[]> 
     supabase.from("review_submissions" as any).select("product_id, status").eq("user_id", userId).neq("status", "rejected"),
   ]);
   const all = (allRes.data as unknown as Product[]) ?? [];
-  const seen = new Set(((revRes.data as { product_id: string }[]) ?? []).map((r) => r.product_id));
+  const seen = new Set(((revRes.data as unknown as { product_id: string }[]) ?? []).map((r) => r.product_id));
   return all.filter((p) => !seen.has(p.id));
 }
 
@@ -436,7 +436,7 @@ export async function listMessagesFor(user: Profile): Promise<Message[]> {
 }
 export async function getReadMessageIds(userId: string): Promise<Set<string>> {
   const { data } = await supabase.from("message_reads" as any).select("message_id").eq("user_id", userId);
-  return new Set(((data as { message_id: string }[]) ?? []).map((r) => r.message_id));
+  return new Set(((data as unknown as { message_id: string }[]) ?? []).map((r) => r.message_id));
 }
 export async function markMessageRead(userId: string, messageId: string): Promise<void> {
   await supabase.from("message_reads" as any).upsert({ user_id: userId, message_id: messageId } as any, { onConflict: "user_id,message_id" });
@@ -488,8 +488,8 @@ export async function adminFinancialStats(): Promise<{ pointsInCirculation: numb
     supabase.from("redemption_requests" as any).select("ksh_value, status"),
     supabase.from("products" as any).select("id", { count: "exact", head: true }),
   ]);
-  const users = (usersRes.data as { points: number }[]) ?? [];
-  const reds = (redRes.data as { ksh_value: number; status: string }[]) ?? [];
+  const users = (usersRes.data as unknown as { points: number }[]) ?? [];
+  const reds = (redRes.data as unknown as { ksh_value: number; status: string }[]) ?? [];
   return {
     pointsInCirculation: users.reduce((s, u) => s + (u.points ?? 0), 0),
     pointsPaidOut: reds.filter((r) => r.status === "completed").reduce((s, r) => s + Number(r.ksh_value), 0),
