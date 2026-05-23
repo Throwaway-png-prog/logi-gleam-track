@@ -37,6 +37,8 @@ function ProfilePage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [reds, setReds] = useState<RedemptionRequest[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const sid = getSessionId();
