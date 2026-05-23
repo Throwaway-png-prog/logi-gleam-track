@@ -177,7 +177,10 @@ function ProfilePage() {
           </button>
         } />
         <Row label="Member since" value={new Date(user.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })} />
+        <Row label="Last login" value={user.last_login_at ? timeAgo(user.last_login_at) : "—"} />
+        <Row label="Review streak" value={<span className="flex items-center gap-1 text-orange-400 font-semibold"><Flame className="size-3.5" /> {user.review_streak ?? 0} days</span>} />
       </Card>
+
 
       {/* Tier progress */}
       <Card title="Tier progress">
