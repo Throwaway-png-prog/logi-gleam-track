@@ -21,6 +21,18 @@ export interface Profile {
   display_name_changed_at?: string | null;
   reviews_approved?: number;
   reviews_rejected?: number;
+  last_login_at?: string | null;
+  review_streak?: number;
+  last_review_date?: string | null;
+}
+
+export interface Message {
+  id: string;
+  title: string;
+  body: string;
+  audience: "all" | "tier" | "user";
+  audience_value: string | null;
+  created_at: string;
 }
 
 export interface Product {
@@ -375,4 +387,139 @@ export async function rejectRedemption(req: RedemptionRequest) {
 
 export function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// --- Products with rotation (exclude already reviewed) ---
+export async function listAvailableProducts(userId: string): Promise<Product[]> {
+  const [allRes, revRes] = await Promise.all([
+    supabase.from("products" as any).select("*").eq("active", true).order("created_at", { ascending: true }),
+    supabase.from("review_submissions" as any).select("product_id, status").eq("user_id", userId).neq("status", "rejected"),
+  ]);
+  const all = (allRes.data as unknown as Product[]) ?? [];
+  const seen = new Set(((revRes.data as unknown as { product_id: string }[]) ?? []).map((r) => r.product_id));
+  return all.filter((p) => !seen.has(p.id));
+}
+
+// --- Streak update on review submit ---
+export async function bumpStreak(userId: string): Promise<void> {
+  const { data } = await supabase.from("profiles").select("review_streak, last_review_date").eq("id", userId).single();
+  if (!data) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const todayIso = today.toISOString().slice(0, 10);
+  const last = (data as any).last_review_date as string | null;
+  const cur = (data as any).review_streak as number ?? 0;
+  let next = cur;
+  if (!last) next = 1;
+  else if (last === todayIso) next = cur;
+  else {
+    const lastD = new Date(last);
+    const diff = Math.round((today.getTime() - lastD.getTime()) / 86400000);
+    next = diff === 1 ? cur + 1 : 1;
+  }
+  await supabase.from("profiles").update({ review_streak: next, last_review_date: todayIso } as any).eq("id", userId);
+}
+
+// --- Last login ---
+export async function markLogin(userId: string): Promise<void> {
+  await supabase.from("profiles").update({ last_login_at: new Date().toISOString() } as any).eq("id", userId);
+}
+
+// --- Messages ---
+export async function listMessagesFor(user: Profile): Promise<Message[]> {
+  const { data } = await supabase.from("messages" as any).select("*").order("created_at", { ascending: false }).limit(100);
+  const all = (data as unknown as Message[]) ?? [];
+  return all.filter((m) =>
+    m.audience === "all"
+    || (m.audience === "tier" && m.audience_value === user.tier)
+    || (m.audience === "user" && m.audience_value === user.id)
+  );
+}
+export async function getReadMessageIds(userId: string): Promise<Set<string>> {
+  const { data } = await supabase.from("message_reads" as any).select("message_id").eq("user_id", userId);
+  return new Set(((data as unknown as { message_id: string }[]) ?? []).map((r) => r.message_id));
+}
+export async function markMessageRead(userId: string, messageId: string): Promise<void> {
+  await supabase.from("message_reads" as any).upsert({ user_id: userId, message_id: messageId } as any, { onConflict: "user_id,message_id" });
+}
+export async function sendMessage(args: { title: string; body: string; audience: "all" | "tier" | "user"; audience_value?: string | null }) {
+  await supabase.from("messages" as any).insert({
+    title: args.title, body: args.body, audience: args.audience, audience_value: args.audience_value ?? null,
+  } as any);
+}
+
+// --- Avatar upload ---
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop() || "png";
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: file.type || "image/png", upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  await supabase.from("profiles").update({ avatar_url: data.publicUrl } as any).eq("id", userId);
+  return data.publicUrl;
+}
+
+// --- Admin ---
+export async function adminListAllReviews(limit = 200): Promise<(ReviewSubmission & { product?: Product; profile?: Profile })[]> {
+  const { data } = await supabase.from("review_submissions" as any).select("*").order("created_at", { ascending: false }).limit(limit);
+  const rows = (data as unknown as ReviewSubmission[]) ?? [];
+  if (!rows.length) return [];
+  const pIds = [...new Set(rows.map((r) => r.product_id))];
+  const uIds = [...new Set(rows.map((r) => r.user_id))];
+  const [{ data: prods }, { data: profs }] = await Promise.all([
+    supabase.from("products" as any).select("*").in("id", pIds),
+    supabase.from("profiles").select("*").in("id", uIds),
+  ]);
+  const pm = new Map(((prods as unknown as Product[]) ?? []).map((p) => [p.id, p]));
+  const um = new Map(((profs as Profile[]) ?? []).map((p) => [p.id, p]));
+  return rows.map((r) => ({ ...r, product: pm.get(r.product_id), profile: um.get(r.user_id) }));
+}
+export async function adminListAllRedemptions(limit = 200): Promise<(RedemptionRequest & { profile?: Profile })[]> {
+  const { data } = await supabase.from("redemption_requests" as any).select("*").order("created_at", { ascending: false }).limit(limit);
+  const rows = (data as unknown as RedemptionRequest[]) ?? [];
+  if (!rows.length) return [];
+  const ids = [...new Set(rows.map((r) => r.user_id))];
+  const { data: profs } = await supabase.from("profiles").select("*").in("id", ids);
+  const map = new Map(((profs as Profile[]) ?? []).map((p) => [p.id, p]));
+  return rows.map((r) => ({ ...r, profile: map.get(r.user_id) }));
+}
+export async function adminFinancialStats(): Promise<{ pointsInCirculation: number; pointsPaidOut: number; pendingPayouts: number; totalUsers: number; totalProducts: number }> {
+  const [usersRes, redRes, prodRes] = await Promise.all([
+    supabase.from("profiles").select("points"),
+    supabase.from("redemption_requests" as any).select("ksh_value, status"),
+    supabase.from("products" as any).select("id", { count: "exact", head: true }),
+  ]);
+  const users = (usersRes.data as unknown as { points: number }[]) ?? [];
+  const reds = (redRes.data as unknown as { ksh_value: number; status: string }[]) ?? [];
+  return {
+    pointsInCirculation: users.reduce((s, u) => s + (u.points ?? 0), 0),
+    pointsPaidOut: reds.filter((r) => r.status === "completed").reduce((s, r) => s + Number(r.ksh_value), 0),
+    pendingPayouts: reds.filter((r) => r.status === "pending").reduce((s, r) => s + Number(r.ksh_value), 0),
+    totalUsers: users.length,
+    totalProducts: prodRes.count ?? 0,
+  };
+}
+export async function adminUpsertProduct(p: Partial<Product> & { id?: string }): Promise<void> {
+  if (p.id) {
+    await supabase.from("products" as any).update(p as any).eq("id", p.id);
+  } else {
+    await supabase.from("products" as any).insert({
+      name: p.name, brand: p.brand, category: p.category, price_ksh: p.price_ksh,
+      platform: p.platform, image_url: p.image_url, points_reward: p.points_reward,
+      est_minutes: p.est_minutes ?? "2-3 minutes", active: p.active ?? true,
+    } as any);
+  }
+}
+export async function setRegistrationOpen(open: boolean) {
+  await supabase.from("system_settings").upsert({ id: 1, registration_open: open, updated_at: new Date().toISOString() } as any);
+}
+export async function getRegistrationOpen(): Promise<boolean> {
+  const { data } = await supabase.from("system_settings").select("registration_open" as any).eq("id", 1).maybeSingle();
+  return (data as any)?.registration_open !== false;
+}
+
+export function greetingFor(d = new Date()): string {
+  const h = d.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }

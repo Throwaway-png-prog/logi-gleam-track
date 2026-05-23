@@ -26,7 +26,7 @@ function ProductReviewPage() {
 
   useEffect(() => {
     const sid = getSessionId();
-    if (!sid) { navigate({ to: "/" }); return; }
+    if (!sid) { navigate({ to: "/app" }); return; }
     Promise.all([getProduct(id), loadProfile(sid)]).then(([p, u]) => {
       setProduct(p); setUser(u); setLoading(false);
     });

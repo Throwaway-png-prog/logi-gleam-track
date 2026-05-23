@@ -121,6 +121,54 @@ export type Database = {
         }
         Relationships: []
       }
+      message_reads: {
+        Row: {
+          id: string
+          message_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          audience: string
+          audience_value: string | null
+          body: string
+          created_at: string
+          id: string
+          title: string
+        }
+        Insert: {
+          audience?: string
+          audience_value?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          title: string
+        }
+        Update: {
+          audience?: string
+          audience_value?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       points_transactions: {
         Row: {
           created_at: string
@@ -206,13 +254,16 @@ export type Database = {
           display_name_changed_at: string | null
           full_name: string
           id: string
+          last_login_at: string | null
           last_reset_date: string
+          last_review_date: string | null
           mpesa_number: string | null
           mpesa_verified: boolean
           phone: string
           pin: string
           points: number
           referral_code: string | null
+          review_streak: number
           reviews_approved: number
           reviews_rejected: number
           role: string
@@ -228,13 +279,16 @@ export type Database = {
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
+          last_login_at?: string | null
           last_reset_date?: string
+          last_review_date?: string | null
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone: string
           pin: string
           points?: number
           referral_code?: string | null
+          review_streak?: number
           reviews_approved?: number
           reviews_rejected?: number
           role?: string
@@ -250,13 +304,16 @@ export type Database = {
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
+          last_login_at?: string | null
           last_reset_date?: string
+          last_review_date?: string | null
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone?: string
           pin?: string
           points?: number
           referral_code?: string | null
+          review_streak?: number
           reviews_approved?: number
           reviews_rejected?: number
           role?: string
@@ -367,18 +424,21 @@ export type Database = {
           id: number
           maintenance: boolean
           redemptions_on_hold: boolean
+          registration_open: boolean
           updated_at: string
         }
         Insert: {
           id?: number
           maintenance?: boolean
           redemptions_on_hold?: boolean
+          registration_open?: boolean
           updated_at?: string
         }
         Update: {
           id?: number
           maintenance?: boolean
           redemptions_on_hold?: boolean
+          registration_open?: boolean
           updated_at?: string
         }
         Relationships: []

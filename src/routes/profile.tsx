@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Copy, Check, Sun, Moon, ShieldCheck, Award, Loader2, Trophy, Star, Wallet,
+  Copy, Check, Sun, Moon, ShieldCheck, Award, Loader2, Trophy, Wallet, Flame, Camera,
 } from "lucide-react";
 import {
-  getSessionId, loadProfile, updateProfile, myRedemptions, type Profile, type RedemptionRequest,
+  getSessionId, loadProfile, updateProfile, myRedemptions, uploadAvatar,
+  type Profile, type RedemptionRequest,
 } from "@/lib/api";
 import { formatKsh, formatPhoneKE, initialsOf, maskPhone, timeAgo } from "@/lib/format";
 import { getTier, getNextTier } from "@/lib/tiers";
+import { AppShell } from "@/components/AppShell";
+
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -34,10 +37,12 @@ function ProfilePage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [reds, setReds] = useState<RedemptionRequest[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const sid = getSessionId();
-    if (!sid) { navigate({ to: "/" }); return; }
+    if (!sid) { navigate({ to: "/app" }); return; }
     Promise.all([loadProfile(sid), myRedemptions(sid)]).then(([u, r]) => {
       if (u) {
         setUser(u);
@@ -107,13 +112,18 @@ function ProfilePage() {
   const tierTarget = 50;
   const tierPct = Math.min(100, (reviewsDone / tierTarget) * 100);
 
+  async function onAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f || !user) return;
+    const url = await uploadAvatar(user.id, f);
+    setUser({ ...user, avatar_url: url });
+  }
+
   return (
-    <div className="min-h-screen px-5 pt-6 pb-24 max-w-xl mx-auto">
+    <AppShell user={user}>
+    <div className="px-5 pt-5 pb-8 max-w-xl mx-auto">
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="size-11 rounded-xl glass flex items-center justify-center"><ArrowLeft className="size-5" /></Link>
-          <h1 className="text-xl font-bold">Profile</h1>
-        </div>
+        <h1 className="text-2xl font-bold">Profile</h1>
         <button onClick={toggleTheme} className="size-11 rounded-xl glass flex items-center justify-center" aria-label="Toggle theme">
           {theme === "dark" ? <Sun className="size-5 text-gold" /> : <Moon className="size-5" />}
         </button>
@@ -122,9 +132,18 @@ function ProfilePage() {
       {/* Avatar + identity */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
         className="glass rounded-3xl p-5 shadow-elegant mb-5 text-center">
-        <div className="mx-auto size-20 rounded-3xl bg-gradient-primary shadow-glow flex items-center justify-center font-bold text-3xl text-primary-foreground mb-3">
-          {initialsOf(user.display_name || user.full_name)}
-        </div>
+        <label className="relative mx-auto size-20 rounded-3xl bg-gradient-primary shadow-glow flex items-center justify-center font-bold text-3xl text-primary-foreground mb-3 cursor-pointer overflow-hidden block">
+          {user.avatar_url ? (
+            <img src={user.avatar_url} alt="avatar" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <span>{initialsOf(user.display_name || user.full_name)}</span>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" onChange={onAvatarPick} className="hidden" />
+          <span className="absolute bottom-0 right-0 size-7 rounded-full bg-gold text-gold-foreground flex items-center justify-center shadow-gold">
+            <Camera className="size-3.5" />
+          </span>
+        </label>
+
         {editing ? (
           <div className="flex gap-2 max-w-xs mx-auto">
             <input value={displayName} onChange={(e) => setDisplayName(e.target.value.replace(/\s+/g, "").slice(0, 20))}
@@ -158,7 +177,10 @@ function ProfilePage() {
           </button>
         } />
         <Row label="Member since" value={new Date(user.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })} />
+        <Row label="Last login" value={user.last_login_at ? timeAgo(user.last_login_at) : "—"} />
+        <Row label="Review streak" value={<span className="flex items-center gap-1 text-orange-400 font-semibold"><Flame className="size-3.5" /> {user.review_streak ?? 0} days</span>} />
       </Card>
+
 
       {/* Tier progress */}
       <Card title="Tier progress">
@@ -247,8 +269,10 @@ function ProfilePage() {
         )}
       </Card>
     </div>
+    </AppShell>
   );
 }
+
 
 function Card({ title, trailing, children }: { title: string; trailing?: React.ReactNode; children: React.ReactNode }) {
   return (
