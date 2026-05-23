@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as X7k2p9m4q1adminRouteImport } from './routes/x7k2p9m4q1admin'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as RedeemRouteImport } from './routes/redeem'
@@ -18,6 +19,11 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 
+const X7k2p9m4q1adminRoute = X7k2p9m4q1adminRouteImport.update({
+  id: '/x7k2p9m4q1admin',
+  path: '/x7k2p9m4q1admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UpgradeRoute = UpgradeRouteImport.update({
   id: '/upgrade',
   path: '/upgrade',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
+  '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
+  '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
   '/upgrade': typeof UpgradeRoute
+  '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/redeem'
     | '/supervisor'
     | '/upgrade'
+    | '/x7k2p9m4q1admin'
     | '/products/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/redeem'
     | '/supervisor'
     | '/upgrade'
+    | '/x7k2p9m4q1admin'
     | '/products/$id'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/redeem'
     | '/supervisor'
     | '/upgrade'
+    | '/x7k2p9m4q1admin'
     | '/products/$id'
   fileRoutesById: FileRoutesById
 }
@@ -131,10 +143,18 @@ export interface RootRouteChildren {
   RedeemRoute: typeof RedeemRoute
   SupervisorRoute: typeof SupervisorRoute
   UpgradeRoute: typeof UpgradeRoute
+  X7k2p9m4q1adminRoute: typeof X7k2p9m4q1adminRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/x7k2p9m4q1admin': {
+      id: '/x7k2p9m4q1admin'
+      path: '/x7k2p9m4q1admin'
+      fullPath: '/x7k2p9m4q1admin'
+      preLoaderRoute: typeof X7k2p9m4q1adminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upgrade': {
       id: '/upgrade'
       path: '/upgrade'
@@ -214,7 +234,18 @@ const rootRouteChildren: RootRouteChildren = {
   RedeemRoute: RedeemRoute,
   SupervisorRoute: SupervisorRoute,
   UpgradeRoute: UpgradeRoute,
+  X7k2p9m4q1adminRoute: X7k2p9m4q1adminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
