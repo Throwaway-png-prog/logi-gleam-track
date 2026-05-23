@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { ArrowLeft, Search, Loader2, Star } from "lucide-react";
-import { listProducts, getSessionId, type Product } from "@/lib/api";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Loader2, Star, X, Sparkles } from "lucide-react";
+import { listAvailableProducts, getSessionId, loadProfile, type Product, type Profile } from "@/lib/api";
 import { formatKsh } from "@/lib/format";
+import { AppShell } from "@/components/AppShell";
+import { ReviewForm } from "@/components/ReviewForm";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
@@ -14,61 +16,68 @@ const CATEGORIES = ["All", "Electronics", "Fashion", "Home & Living", "Beauty", 
 
 function ProductsPage() {
   const navigate = useNavigate();
+  const [user, setUser] = useState<Profile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
+  const [selected, setSelected] = useState<Product | null>(null);
 
-  useEffect(() => {
-    if (!getSessionId()) { navigate({ to: "/" }); return; }
-    listProducts().then((p) => { setProducts(p); setLoading(false); });
-  }, [navigate]);
+  async function load() {
+    const sid = getSessionId();
+    if (!sid) { navigate({ to: "/app" }); return; }
+    const u = await loadProfile(sid);
+    if (!u) { navigate({ to: "/app" }); return; }
+    setUser(u);
+    const p = await listAvailableProducts(u.id);
+    setProducts(p); setLoading(false);
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
-  const filtered = useMemo(() => {
-    return products.filter((p) =>
-      (cat === "All" || p.category === cat) &&
-      (q === "" || p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase()))
-    );
-  }, [products, cat, q]);
+  const filtered = useMemo(() => products.filter((p) =>
+    (cat === "All" || p.category === cat) &&
+    (q === "" || p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase()))
+  ), [products, cat, q]);
+
+  if (!user) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>;
 
   return (
-    <div className="min-h-screen px-5 pt-6 pb-24 max-w-xl mx-auto">
-      <div className="flex items-center gap-3 mb-5">
-        <Link to="/" className="size-11 rounded-xl glass flex items-center justify-center"><ArrowLeft className="size-5" /></Link>
-        <div>
+    <AppShell user={user}>
+      <div className="px-5 pt-5 pb-8 max-w-xl mx-auto">
+        <div className="mb-5">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Earn</p>
-          <h1 className="text-xl font-bold">Product reviews</h1>
+          <h1 className="text-2xl font-bold">Product reviews</h1>
+          <p className="text-sm text-gold flex items-center gap-1.5 mt-1">
+            <Sparkles className="size-3.5" /> {products.length} new products available
+          </p>
         </div>
-      </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-        <input
-          placeholder="Search products or brands"
-          value={q} onChange={(e) => setQ(e.target.value)}
-          className="w-full h-12 pl-12 pr-4 rounded-xl bg-input border border-border focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+          <input placeholder="Search products or brands" value={q} onChange={(e) => setQ(e.target.value)}
+            className="w-full h-12 pl-12 pr-4 rounded-xl bg-input border border-border focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 mb-5">
-        {CATEGORIES.map((c) => (
-          <button key={c} onClick={() => setCat(c)}
-            className={`px-4 h-9 rounded-full text-xs font-semibold whitespace-nowrap transition ${
-              cat === c ? "bg-gradient-primary text-primary-foreground shadow-glow" : "glass text-muted-foreground"
-            }`}>
-            {c}
-          </button>
-        ))}
-      </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 mb-5">
+          {CATEGORIES.map((c) => (
+            <button key={c} onClick={() => setCat(c)}
+              className={`px-4 h-9 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                cat === c ? "bg-gradient-primary text-primary-foreground shadow-glow" : "glass text-muted-foreground"
+              }`}>
+              {c}
+            </button>
+          ))}
+        </div>
 
-      {loading ? (
-        <div className="py-10 flex justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {filtered.map((p, i) => (
-            <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
-              <Link to="/products/$id" params={{ id: p.id }}
-                className="block glass rounded-2xl overflow-hidden active:scale-[0.98] transition">
+        {loading ? (
+          <div className="py-10 flex justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {filtered.map((p, i) => (
+              <motion.button key={p.id} type="button"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                onClick={() => setSelected(p)}
+                className="text-left block glass rounded-2xl overflow-hidden active:scale-[0.98] transition">
                 <div className="aspect-square bg-muted overflow-hidden relative">
                   <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
                   <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-gradient-gold text-gold-foreground text-[10px] font-bold shadow-gold">
@@ -83,14 +92,40 @@ function ProductsPage() {
                   <p className="text-xs text-muted-foreground line-clamp-1">{p.brand}</p>
                   <p className="text-xs font-semibold mt-1">{formatKsh(p.price_ksh)}</p>
                 </div>
-              </Link>
+              </motion.button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="col-span-2 py-10 text-center text-sm text-muted-foreground">
+                {products.length === 0 ? "🎉 You've reviewed every available product! New batches drop daily." : "No products match your search."}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {selected && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setSelected(null)}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6">
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-lg max-h-[92vh] glass rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col border border-border/60">
+              <div className="flex items-center justify-between p-4 border-b border-border/40 shrink-0">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gold">Review job</p>
+                  <h2 className="font-bold text-sm truncate max-w-[220px]">{selected.name}</h2>
+                </div>
+                <button onClick={() => setSelected(null)} className="size-9 rounded-lg glass flex items-center justify-center"><X className="size-4" /></button>
+              </div>
+              <div className="overflow-y-auto p-4">
+                <ReviewForm product={selected} user={user} onDone={() => { setSelected(null); load(); }} />
+              </div>
             </motion.div>
-          ))}
-          {filtered.length === 0 && (
-            <p className="col-span-2 py-10 text-center text-sm text-muted-foreground">No products match your search.</p>
-          )}
-        </div>
-      )}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </AppShell>
   );
 }
