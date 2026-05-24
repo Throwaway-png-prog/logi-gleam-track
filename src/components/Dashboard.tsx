@@ -102,12 +102,15 @@ export function Dashboard({ user, setUser, onLogout }: {
           <div className="absolute -top-12 -right-12 size-40 rounded-full bg-gradient-primary opacity-25 blur-2xl" />
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Available balance</p>
           <div className="flex items-end justify-between mt-1">
-            <AnimatedCounter value={user.points} className="text-4xl font-bold text-gradient-gold" />
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold text-gradient-gold">KSh</span>
+              <AnimatedCounter value={user.points} className="text-4xl font-bold text-gradient-gold" />
+            </div>
             <Link to="/redeem" className="text-xs text-gold flex items-center gap-1 hover:underline">
-              Withdraw <ArrowUpRight className="size-3.5" />
+              Withdraw to M-Pesa <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">≈ {formatKsh(user.points)} · 1 point = KSh 1</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Earned through honest reviews · Paid in real KSh</p>
         </motion.div>
 
         {/* New products count */}
