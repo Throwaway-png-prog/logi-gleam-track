@@ -18,6 +18,8 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"register" | "login">("register");
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [termsOk, setTermsOk] = useState(false);
+  const [referralCode] = useState<string | null>(() => getPendingReferral());
 
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneValid = phoneDigits.length >= 9 && phoneDigits.length <= 12;
