@@ -9,7 +9,7 @@ import { AppShell } from "./AppShell";
 import { AnimatedCounter } from "./AnimatedCounter";
 import {
   loadProfile, getMaintenance, setSessionId, listAvailableProducts, myReviews,
-  earningsBetween, myTransactions, todaysReviewCount, greetingFor,
+  earningsBetween, myTransactions, todaysReviewCount, greetingFor, topReferrersThisMonth,
   type Profile, type Product, type PointsTx, type ReviewSubmission,
 } from "@/lib/api";
 import { getTier, getNextTier } from "@/lib/tiers";
