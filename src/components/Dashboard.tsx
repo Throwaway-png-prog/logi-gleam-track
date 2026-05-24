@@ -31,6 +31,7 @@ export function Dashboard({ user, setUser, onLogout }: {
   const [todayReviews, setTodayReviews] = useState(0);
   const [recent, setRecent] = useState<PointsTx[]>([]);
   const [myRev, setMyRev] = useState<(ReviewSubmission & { product?: Product })[]>([]);
+  const [topRefs, setTopRefs] = useState<{ user_id: string; display_name: string; total: number }[]>([]);
   const [now, setNow] = useState(new Date());
 
   const tier = useMemo(() => getTier(user.tier), [user.tier]);
