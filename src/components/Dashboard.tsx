@@ -85,7 +85,7 @@ export function Dashboard({ user, setUser, onLogout }: {
             {now.toLocaleDateString(undefined, { weekday: "long" })} · {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
           <h1 className="text-2xl font-bold mt-1">
-            {greeting}, <span className="text-gradient-gold">@{user.display_name || user.full_name}</span>
+            {greeting}, <span className="text-gradient-gold">{firstName(user.full_name || user.display_name)}</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
             <span className="px-1.5 py-0.5 rounded bg-gold/15 text-gold text-[10px] font-bold tracking-wide">{tier.name}</span>
