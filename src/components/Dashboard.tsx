@@ -18,6 +18,8 @@ import { formatKsh, timeAgo } from "@/lib/format";
 const DAILY_GOAL = 5;
 const GOAL_BONUS = 200;
 
+function firstName(s: string) { return (s || "").trim().split(/\s+/)[0] || "there"; }
+
 export function Dashboard({ user, setUser, onLogout }: {
   user: Profile; setUser: (u: Profile) => void; onLogout: () => void;
 }) {
