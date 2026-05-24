@@ -42,7 +42,7 @@ export function Dashboard({ user, setUser, onLogout }: {
   async function refresh() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const weekAgo = new Date(Date.now() - 7 * 86400 * 1000);
-    const [fresh, prods, maint, te, we, rc, txs, rev, refs] = await Promise.all([
+    const [fresh, prods, maint, te, we, rc, txs, rev] = await Promise.all([
       loadProfile(user.id),
       listAvailableProducts(user.id),
       getMaintenance(),
@@ -51,13 +51,11 @@ export function Dashboard({ user, setUser, onLogout }: {
       todaysReviewCount(user.id),
       myTransactions(user.id, 8),
       myReviews(user.id, 5),
-      topReferrersThisMonth(5),
     ]);
     if (fresh) setUser(fresh);
     setProducts(prods); setMaint(maint);
     setTodayEarn(te); setWeekEarn(we);
     setTodayReviews(rc); setRecent(txs); setMyRev(rev);
-    setTopRefs(refs);
     setLoading(false);
   }
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
