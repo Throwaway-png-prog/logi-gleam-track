@@ -178,6 +178,25 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
               <h2 className="text-xl font-semibold mt-1 mb-1">Confirm your PIN</h2>
               <p className="text-sm text-muted-foreground mb-5">Type it again to be sure.</p>
               <PinInput value={confirmPin} onChange={setConfirmPin} />
+
+              <label className="mt-5 flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox" checked={termsOk}
+                  onChange={(e) => setTermsOk(e.target.checked)}
+                  className="mt-0.5 size-5 rounded border-border accent-[color:var(--primary)]"
+                />
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  I agree to the <Link to="/terms" target="_blank" className="text-gold underline">Terms & Conditions</Link> and{" "}
+                  <Link to="/privacy" target="_blank" className="text-gold underline">Privacy Policy</Link>.
+                </span>
+              </label>
+
+              {referralCode && (
+                <div className="mt-3 text-xs text-success bg-success/10 border border-success/30 rounded-lg p-2.5">
+                  Referral code <span className="font-mono font-bold">{referralCode}</span> applied — you'll get KSh 50 welcome bonus.
+                </div>
+              )}
+
               {error && <ErrorBox msg={error} />}
               <button disabled={confirmPin.length !== 4 || loading} onClick={finalizeRegistration}
                 className="mt-6 w-full h-14 rounded-xl bg-gradient-gold text-gold-foreground font-semibold shadow-gold disabled:opacity-40 active:scale-[0.98] transition flex items-center justify-center gap-2">
