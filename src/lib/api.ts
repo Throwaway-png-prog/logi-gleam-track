@@ -149,6 +149,7 @@ export async function registerProfile(
   pin: string,
   full_name: string,
   display_name: string,
+  opts?: { referred_by?: string | null; terms_accepted?: boolean },
 ): Promise<Profile> {
   for (let i = 0; i < 5; i++) {
     const worker_id = genWorkerId();
@@ -159,12 +160,34 @@ export async function registerProfile(
         phone, pin, worker_id, full_name, role: "worker",
         tier: "Starter", points: 0, units_today: 0, last_reset_date: todayStr(),
         display_name, referral_code,
+        referred_by: opts?.referred_by ?? null,
+        terms_accepted_at: opts?.terms_accepted ? new Date().toISOString() : null,
       } as any)
       .select().single();
     if (!error && data) return data as Profile;
     if (error && !error.message.includes("worker_id")) throw error;
   }
   throw new Error("Could not generate unique worker id");
+}
+
+export async function loginProfile(phone: string, pin: string): Promise<Profile | null> {
+  const p = await findByPhone(phone);
+  if (!p || p.pin !== pin) return null;
+  return p;
+}
+
+export async function loadProfile(id: string): Promise<Profile | null> {
+  const { data } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
+  if (!data) return null;
+  let p = data as Profile;
+  if (p.last_reset_date !== todayStr()) {
+    const { data: updated } = await supabase
+      .from("profiles")
+      .update({ units_today: 0, last_reset_date: todayStr() })
+      .eq("id", id).select().single();
+    if (updated) p = updated as Profile;
+  }
+  return p;
 }
 
 export async function loginProfile(phone: string, pin: string): Promise<Profile | null> {
