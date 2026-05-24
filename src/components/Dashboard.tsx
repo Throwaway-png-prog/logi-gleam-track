@@ -18,6 +18,8 @@ import { formatKsh, timeAgo } from "@/lib/format";
 const DAILY_GOAL = 5;
 const GOAL_BONUS = 200;
 
+function firstName(s: string) { return (s || "").trim().split(/\s+/)[0] || "there"; }
+
 export function Dashboard({ user, setUser, onLogout }: {
   user: Profile; setUser: (u: Profile) => void; onLogout: () => void;
 }) {
@@ -80,7 +82,7 @@ export function Dashboard({ user, setUser, onLogout }: {
             {now.toLocaleDateString(undefined, { weekday: "long" })} · {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
           <h1 className="text-2xl font-bold mt-1">
-            {greeting}, <span className="text-gradient-gold">@{user.display_name || user.full_name}</span>
+            {greeting}, <span className="text-gradient-gold">{firstName(user.full_name || user.display_name)}</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
             <span className="px-1.5 py-0.5 rounded bg-gold/15 text-gold text-[10px] font-bold tracking-wide">{tier.name}</span>
@@ -97,12 +99,15 @@ export function Dashboard({ user, setUser, onLogout }: {
           <div className="absolute -top-12 -right-12 size-40 rounded-full bg-gradient-primary opacity-25 blur-2xl" />
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Available balance</p>
           <div className="flex items-end justify-between mt-1">
-            <AnimatedCounter value={user.points} className="text-4xl font-bold text-gradient-gold" />
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold text-gradient-gold">KSh</span>
+              <AnimatedCounter value={user.points} className="text-4xl font-bold text-gradient-gold" />
+            </div>
             <Link to="/redeem" className="text-xs text-gold flex items-center gap-1 hover:underline">
-              Withdraw <ArrowUpRight className="size-3.5" />
+              Withdraw to M-Pesa <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">≈ {formatKsh(user.points)} · 1 point = KSh 1</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Earned through honest reviews · Paid in real KSh</p>
         </motion.div>
 
         {/* New products count */}

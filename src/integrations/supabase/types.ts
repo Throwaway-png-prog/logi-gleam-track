@@ -46,6 +46,30 @@ export type Database = {
           },
         ]
       }
+      emergency_alerts: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          duration_seconds: number
+          id: string
+          message: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          message: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          message?: string
+        }
+        Relationships: []
+      }
       job_completions: {
         Row: {
           created_at: string
@@ -169,6 +193,81 @@ export type Database = {
         }
         Relationships: []
       }
+      news_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          news_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          news_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          news_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      news_items: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string | null
+          kind: string
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          kind?: string
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          kind?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      news_likes: {
+        Row: {
+          created_at: string
+          id: string
+          news_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          news_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          news_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       points_transactions: {
         Row: {
           created_at: string
@@ -254,21 +353,26 @@ export type Database = {
           display_name_changed_at: string | null
           full_name: string
           id: string
+          interview_responses: Json | null
           last_login_at: string | null
           last_reset_date: string
           last_review_date: string | null
+          lifetime_earned: number
           mpesa_number: string | null
           mpesa_verified: boolean
           phone: string
           pin: string
           points: number
           referral_code: string | null
+          referred_by: string | null
           review_streak: number
           reviews_approved: number
           reviews_rejected: number
           role: string
+          terms_accepted_at: string | null
           theme_pref: string
           tier: string
+          total_referral_earnings: number
           units_today: number
           worker_id: string
         }
@@ -279,21 +383,26 @@ export type Database = {
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
+          interview_responses?: Json | null
           last_login_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
+          lifetime_earned?: number
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone: string
           pin: string
           points?: number
           referral_code?: string | null
+          referred_by?: string | null
           review_streak?: number
           reviews_approved?: number
           reviews_rejected?: number
           role?: string
+          terms_accepted_at?: string | null
           theme_pref?: string
           tier?: string
+          total_referral_earnings?: number
           units_today?: number
           worker_id: string
         }
@@ -304,21 +413,26 @@ export type Database = {
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
+          interview_responses?: Json | null
           last_login_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
+          lifetime_earned?: number
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone?: string
           pin?: string
           points?: number
           referral_code?: string | null
+          referred_by?: string | null
           review_streak?: number
           reviews_approved?: number
           reviews_rejected?: number
           role?: string
+          terms_accepted_at?: string | null
           theme_pref?: string
           tier?: string
+          total_referral_earnings?: number
           units_today?: number
           worker_id?: string
         }
@@ -361,6 +475,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      referral_earnings: {
+        Row: {
+          amount_ksh: number
+          created_at: string
+          id: string
+          kind: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          amount_ksh: number
+          created_at?: string
+          id?: string
+          kind?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          amount_ksh?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
       }
       review_submissions: {
         Row: {
@@ -421,6 +562,10 @@ export type Database = {
       }
       system_settings: {
         Row: {
+          emergency_active: boolean
+          emergency_duration_seconds: number
+          emergency_message: string | null
+          emergency_started_at: string | null
           id: number
           maintenance: boolean
           redemptions_on_hold: boolean
@@ -428,6 +573,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          emergency_active?: boolean
+          emergency_duration_seconds?: number
+          emergency_message?: string | null
+          emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
           redemptions_on_hold?: boolean
@@ -435,11 +584,45 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          emergency_active?: boolean
+          emergency_duration_seconds?: number
+          emergency_message?: string | null
+          emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
           redemptions_on_hold?: boolean
           registration_open?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tier_upgrades: {
+        Row: {
+          fee_ksh: number
+          from_tier: string
+          id: string
+          paid_at: string
+          to_tier: string
+          transaction_code: string | null
+          user_id: string
+        }
+        Insert: {
+          fee_ksh: number
+          from_tier: string
+          id?: string
+          paid_at?: string
+          to_tier: string
+          transaction_code?: string | null
+          user_id: string
+        }
+        Update: {
+          fee_ksh?: number
+          from_tier?: string
+          id?: string
+          paid_at?: string
+          to_tier?: string
+          transaction_code?: string | null
+          user_id?: string
         }
         Relationships: []
       }

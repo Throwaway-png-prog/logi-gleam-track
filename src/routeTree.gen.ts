@@ -11,13 +11,18 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as X7k2p9m4q1adminRouteImport } from './routes/x7k2p9m4q1admin'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as RedeemRouteImport } from './routes/redeem'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NewsRouteImport } from './routes/news'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
+import { Route as JoinCodeRouteImport } from './routes/join.$code'
 
 const X7k2p9m4q1adminRoute = X7k2p9m4q1adminRouteImport.update({
   id: '/x7k2p9m4q1admin',
@@ -27,6 +32,11 @@ const X7k2p9m4q1adminRoute = X7k2p9m4q1adminRouteImport.update({
 const UpgradeRoute = UpgradeRouteImport.update({
   id: '/upgrade',
   path: '/upgrade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupervisorRoute = SupervisorRouteImport.update({
@@ -49,6 +59,21 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -64,39 +89,59 @@ const ProductsIdRoute = ProductsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ProductsRoute,
 } as any)
+const JoinCodeRoute = JoinCodeRouteImport.update({
+  id: '/join/$code',
+  path: '/join/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/news': typeof NewsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
+  '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
+  '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/news': typeof NewsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
+  '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
+  '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/news': typeof NewsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
+  '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
+  '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRouteTypes {
@@ -104,46 +149,66 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/news'
+    | '/onboarding'
+    | '/privacy'
     | '/products'
     | '/profile'
     | '/redeem'
     | '/supervisor'
+    | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
+    | '/join/$code'
     | '/products/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
+    | '/news'
+    | '/onboarding'
+    | '/privacy'
     | '/products'
     | '/profile'
     | '/redeem'
     | '/supervisor'
+    | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
+    | '/join/$code'
     | '/products/$id'
   id:
     | '__root__'
     | '/'
     | '/app'
+    | '/news'
+    | '/onboarding'
+    | '/privacy'
     | '/products'
     | '/profile'
     | '/redeem'
     | '/supervisor'
+    | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
+    | '/join/$code'
     | '/products/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
+  NewsRoute: typeof NewsRoute
+  OnboardingRoute: typeof OnboardingRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   RedeemRoute: typeof RedeemRoute
   SupervisorRoute: typeof SupervisorRoute
+  TermsRoute: typeof TermsRoute
   UpgradeRoute: typeof UpgradeRoute
   X7k2p9m4q1adminRoute: typeof X7k2p9m4q1adminRoute
+  JoinCodeRoute: typeof JoinCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -160,6 +225,13 @@ declare module '@tanstack/react-router' {
       path: '/upgrade'
       fullPath: '/upgrade'
       preLoaderRoute: typeof UpgradeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/supervisor': {
@@ -190,6 +262,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -211,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsIdRouteImport
       parentRoute: typeof ProductsRoute
     }
+    '/join/$code': {
+      id: '/join/$code'
+      path: '/join/$code'
+      fullPath: '/join/$code'
+      preLoaderRoute: typeof JoinCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -229,23 +329,18 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
+  NewsRoute: NewsRoute,
+  OnboardingRoute: OnboardingRoute,
+  PrivacyRoute: PrivacyRoute,
   ProductsRoute: ProductsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   RedeemRoute: RedeemRoute,
   SupervisorRoute: SupervisorRoute,
+  TermsRoute: TermsRoute,
   UpgradeRoute: UpgradeRoute,
   X7k2p9m4q1adminRoute: X7k2p9m4q1adminRoute,
+  JoinCodeRoute: JoinCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

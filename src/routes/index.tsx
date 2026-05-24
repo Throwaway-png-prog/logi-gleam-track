@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight, ShoppingBag, Star, Wallet, ShieldCheck, Sparkles, Plus, Minus,
   TrendingUp, Users, Coins, Quote,
 } from "lucide-react";
+import { InstallPrompt, useIsStandalone } from "@/components/InstallPrompt";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -40,8 +41,17 @@ const FAQ = [
 ];
 
 function Landing() {
+  const navigate = useNavigate();
+  const standalone = useIsStandalone();
+
+  useEffect(() => {
+    if (standalone) navigate({ to: "/app" });
+  }, [standalone, navigate]);
+
   return (
     <div className="min-h-screen">
+      <InstallPrompt />
+
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/70 border-b border-border/40">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -170,8 +180,13 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-border/40 py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} LogiBack Earn. Get paid to review products.
+      <footer className="border-t border-border/40 py-8 text-center text-xs text-muted-foreground space-y-2">
+        <div className="flex items-center justify-center gap-4">
+          <Link to="/terms" className="hover:text-foreground">Terms & Conditions</Link>
+          <span aria-hidden>·</span>
+          <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+        </div>
+        <p>© {new Date().getFullYear()} LogiBack Earn. Get paid to review products.</p>
       </footer>
     </div>
   );
