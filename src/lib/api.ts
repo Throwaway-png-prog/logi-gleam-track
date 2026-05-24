@@ -1,5 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface InterviewResponses {
+  why: string;
+  country: string;
+  education: string;
+  experience: string;
+  expected: string;
+}
+
 export interface Profile {
   id: string;
   worker_id: string;
@@ -24,6 +32,28 @@ export interface Profile {
   last_login_at?: string | null;
   review_streak?: number;
   last_review_date?: string | null;
+  interview_responses?: InterviewResponses | null;
+  referred_by?: string | null;
+  total_referral_earnings?: number;
+  lifetime_earned?: number;
+  terms_accepted_at?: string | null;
+}
+
+export interface EmergencyState {
+  active: boolean;
+  message: string;
+  started_at: string | null;
+  duration_seconds: number;
+}
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  kind: "announcement" | "spotlight" | "top_reviewer" | "review";
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface Message {
