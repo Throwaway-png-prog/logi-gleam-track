@@ -207,6 +207,10 @@ export async function getProduct(id: string): Promise<Product | null> {
 }
 
 // --- Review submissions ---
+// Per-job payout is tier-based, NOT product-based. The product's points_reward
+// is a display fallback only. We read the user's current tier rate from TIERS.
+import { getTier } from "./tiers";
+
 export async function submitReview(args: {
   user_id: string;
   product: Product;
@@ -214,16 +218,28 @@ export async function submitReview(args: {
   rating: number;
   screenshot_url: string | null;
 }): Promise<ReviewSubmission> {
+  // Look up user tier to compute payout
+  const { data: prof } = await supabase.from("profiles").select("tier").eq("id", args.user_id).single();
+  const tier = getTier((prof as any)?.tier ?? "Starter");
+  const payout = tier.pointsPerUnit;
+
   const { data, error } = await supabase.from("review_submissions" as any).insert({
     user_id: args.user_id,
     product_id: args.product.id,
     review_text: args.review_text,
     rating: args.rating,
     screenshot_url: args.screenshot_url,
-    points_reward: args.product.points_reward,
+    points_reward: payout,
     status: "pending",
   } as any).select().single();
   if (error) throw error;
+
+  // Bump units_today (counts toward tier daily limit)
+  const { data: full } = await supabase.from("profiles").select("units_today").eq("id", args.user_id).single();
+  if (full) {
+    await supabase.from("profiles").update({ units_today: ((full as any).units_today ?? 0) + 1 } as any).eq("id", args.user_id);
+  }
+
   return data as unknown as ReviewSubmission;
 }
 
