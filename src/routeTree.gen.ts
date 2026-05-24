@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as X7k2p9m4q1adminRouteImport } from './routes/x7k2p9m4q1admin'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as RedeemRouteImport } from './routes/redeem'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -27,6 +28,11 @@ const X7k2p9m4q1adminRoute = X7k2p9m4q1adminRouteImport.update({
 const UpgradeRoute = UpgradeRouteImport.update({
   id: '/upgrade',
   path: '/upgrade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupervisorRoute = SupervisorRouteImport.update({
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
+  '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/products/$id': typeof ProductsIdRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
+  '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/products/$id': typeof ProductsIdRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
   '/supervisor': typeof SupervisorRoute
+  '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/products/$id': typeof ProductsIdRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/redeem'
     | '/supervisor'
+    | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
     | '/products/$id'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/redeem'
     | '/supervisor'
+    | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
     | '/products/$id'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/redeem'
     | '/supervisor'
+    | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
     | '/products/$id'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RedeemRoute: typeof RedeemRoute
   SupervisorRoute: typeof SupervisorRoute
+  TermsRoute: typeof TermsRoute
   UpgradeRoute: typeof UpgradeRoute
   X7k2p9m4q1adminRoute: typeof X7k2p9m4q1adminRoute
 }
@@ -160,6 +173,13 @@ declare module '@tanstack/react-router' {
       path: '/upgrade'
       fullPath: '/upgrade'
       preLoaderRoute: typeof UpgradeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/supervisor': {
@@ -233,9 +253,20 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RedeemRoute: RedeemRoute,
   SupervisorRoute: SupervisorRoute,
+  TermsRoute: TermsRoute,
   UpgradeRoute: UpgradeRoute,
   X7k2p9m4q1adminRoute: X7k2p9m4q1adminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
