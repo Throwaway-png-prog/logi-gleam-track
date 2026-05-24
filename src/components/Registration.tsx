@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone, KeyRound, CheckCircle2, Loader2, Boxes, AlertCircle, User, AtSign } from "lucide-react";
-import { findByPhone, registerProfile, loginProfile, setSessionId, type Profile } from "@/lib/api";
+import { findByPhone, registerProfile, loginProfile, setSessionId, getPendingReferral, setPendingReferral, findProfileByReferralCode, type Profile } from "@/lib/api";
 import { formatPhoneKE } from "@/lib/format";
 
 type Step = "phone" | "name" | "display" | "pin" | "confirm" | "welcome";
