@@ -56,9 +56,19 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
 
   async function finalizeRegistration() {
     if (confirmPin !== pin) { setError("PINs don't match"); return; }
+    if (!termsOk) { setError("Please accept Terms & Privacy to continue"); return; }
     setLoading(true); setError(null);
     try {
-      const u = await registerProfile(phone, pin, fullName.trim(), displayName.trim());
+      let referrerId: string | null = null;
+      if (referralCode) {
+        const ref = await findProfileByReferralCode(referralCode);
+        if (ref) referrerId = ref.id;
+      }
+      const u = await registerProfile(phone, pin, fullName.trim(), displayName.trim(), {
+        referred_by: referrerId,
+        terms_accepted: true,
+      });
+      setPendingReferral(null);
       setProfile(u); setSessionId(u.id); setStep("welcome");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create account");
