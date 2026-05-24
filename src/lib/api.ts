@@ -579,3 +579,232 @@ export function greetingFor(d = new Date()): string {
   if (h < 17) return "Good afternoon";
   return "Good evening";
 }
+
+// --- Onboarding interview ---
+export async function saveInterview(userId: string, responses: InterviewResponses): Promise<void> {
+  await supabase.from("profiles").update({ interview_responses: responses as any } as any).eq("id", userId);
+}
+
+// --- Terms ---
+export async function acceptTerms(userId: string): Promise<void> {
+  await supabase.from("profiles").update({ terms_accepted_at: new Date().toISOString() } as any).eq("id", userId);
+}
+
+// --- Referrals ---
+const REFERRAL_LS_KEY = "logiback.pending_ref";
+export function getPendingReferral(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFERRAL_LS_KEY);
+}
+export function setPendingReferral(code: string | null) {
+  if (typeof window === "undefined") return;
+  if (code) localStorage.setItem(REFERRAL_LS_KEY, code);
+  else localStorage.removeItem(REFERRAL_LS_KEY);
+}
+export async function findProfileByReferralCode(code: string): Promise<Profile | null> {
+  const { data } = await supabase.from("profiles").select("*").eq("referral_code", code).maybeSingle();
+  return (data as Profile) ?? null;
+}
+
+const REFERRER_BONUS = 100;
+const REFERRED_BONUS = 50;
+
+async function creditFirstJobReferral(referredId: string, referrerId: string): Promise<void> {
+  // Pay referrer
+  const { data: referrer } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
+  if (referrer) {
+    const r = referrer as Profile;
+    await supabase.from("profiles").update({
+      points: r.points + REFERRER_BONUS,
+      total_referral_earnings: Number(r.total_referral_earnings ?? 0) + REFERRER_BONUS,
+    } as any).eq("id", r.id);
+    await supabase.from("points_transactions" as any).insert({
+      user_id: r.id, delta: REFERRER_BONUS, reason: "Referral bonus — friend's first job", ref_id: referredId,
+    } as any);
+    await supabase.from("referral_earnings" as any).insert({
+      referrer_id: referrerId, referred_id: referredId, amount_ksh: REFERRER_BONUS, kind: "referrer_first_job",
+    } as any);
+  }
+  // Pay referred user welcome bonus
+  const { data: referred } = await supabase.from("profiles").select("*").eq("id", referredId).single();
+  if (referred) {
+    const r = referred as Profile;
+    await supabase.from("profiles").update({ points: r.points + REFERRED_BONUS } as any).eq("id", r.id);
+    await supabase.from("points_transactions" as any).insert({
+      user_id: r.id, delta: REFERRED_BONUS, reason: "Welcome bonus (referred sign-up)", ref_id: referrerId,
+    } as any);
+    await supabase.from("referral_earnings" as any).insert({
+      referrer_id: referrerId, referred_id: referredId, amount_ksh: REFERRED_BONUS, kind: "referred_welcome",
+    } as any);
+  }
+}
+
+export interface ReferralRow {
+  id: string;
+  display_name: string;
+  joined_at: string;
+  earnings: number;
+}
+export async function myReferrals(userId: string): Promise<ReferralRow[]> {
+  const [{ data: profs }, { data: earns }] = await Promise.all([
+    supabase.from("profiles").select("id, display_name, created_at").eq("referred_by", userId),
+    supabase.from("referral_earnings" as any).select("referred_id, amount_ksh, kind").eq("referrer_id", userId),
+  ]);
+  const earnMap = new Map<string, number>();
+  ((earns as any[]) ?? []).forEach((e) => {
+    if (e.kind?.startsWith("referrer")) earnMap.set(e.referred_id, (earnMap.get(e.referred_id) ?? 0) + Number(e.amount_ksh));
+  });
+  return ((profs as any[]) ?? []).map((p) => ({
+    id: p.id, display_name: p.display_name || "User", joined_at: p.created_at,
+    earnings: earnMap.get(p.id) ?? 0,
+  }));
+}
+
+export async function topReferrersThisMonth(limit = 10): Promise<{ user_id: string; display_name: string; total: number }[]> {
+  const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0);
+  const { data: earns } = await supabase.from("referral_earnings" as any)
+    .select("referrer_id, amount_ksh, kind")
+    .gte("created_at", start.toISOString());
+  const totals = new Map<string, number>();
+  ((earns as any[]) ?? []).forEach((e) => {
+    if (e.kind?.startsWith("referrer")) totals.set(e.referrer_id, (totals.get(e.referrer_id) ?? 0) + Number(e.amount_ksh));
+  });
+  const ids = [...totals.keys()];
+  if (!ids.length) return [];
+  const { data: profs } = await supabase.from("profiles").select("id, display_name").in("id", ids);
+  const map = new Map(((profs as any[]) ?? []).map((p) => [p.id, p.display_name || "User"]));
+  return ids
+    .map((id) => ({ user_id: id, display_name: map.get(id) ?? "User", total: totals.get(id)! }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}
+
+// --- Emergency alerts ---
+export async function getEmergency(): Promise<EmergencyState> {
+  const { data } = await supabase.from("system_settings").select("emergency_active, emergency_message, emergency_started_at, emergency_duration_seconds" as any).eq("id", 1).maybeSingle();
+  const d = (data ?? {}) as any;
+  return {
+    active: Boolean(d.emergency_active),
+    message: d.emergency_message ?? "There has been a coordinated attack on our systems. Your data is safe. Please do not share your PIN with anyone. We are rotating security keys. Stay on this screen until countdown ends.",
+    started_at: d.emergency_started_at ?? null,
+    duration_seconds: Number(d.emergency_duration_seconds ?? 30),
+  };
+}
+export async function startEmergency(message: string, durationSeconds = 30, adminId = "admin"): Promise<void> {
+  const startedAt = new Date().toISOString();
+  await supabase.from("system_settings").upsert({
+    id: 1,
+    emergency_active: true,
+    emergency_message: message,
+    emergency_started_at: startedAt,
+    emergency_duration_seconds: durationSeconds,
+    updated_at: startedAt,
+  } as any);
+  await supabase.from("emergency_alerts" as any).insert({
+    admin_id: adminId, message, duration_seconds: durationSeconds,
+  } as any);
+}
+export async function stopEmergency(): Promise<void> {
+  await supabase.from("system_settings").upsert({
+    id: 1, emergency_active: false, updated_at: new Date().toISOString(),
+  } as any);
+}
+export async function listEmergencyAlerts(limit = 50): Promise<{ id: string; message: string; created_at: string; admin_id: string; duration_seconds: number }[]> {
+  const { data } = await supabase.from("emergency_alerts" as any).select("*").order("created_at", { ascending: false }).limit(limit);
+  return ((data as any[]) ?? []) as any;
+}
+
+// --- News ---
+export async function listNews(limit = 50): Promise<NewsItem[]> {
+  const [adminRes, reviewsRes] = await Promise.all([
+    supabase.from("news_items" as any).select("*").order("created_at", { ascending: false }).limit(limit),
+    supabase.from("review_submissions" as any).select("id, review_text, rating, created_at, user_id, product_id").eq("status", "approved").order("created_at", { ascending: false }).limit(10),
+  ]);
+  const adminItems = ((adminRes.data as any[]) ?? []) as NewsItem[];
+  const reviews = ((reviewsRes.data as any[]) ?? []);
+  if (reviews.length === 0) return adminItems;
+  const userIds = [...new Set(reviews.map((r) => r.user_id))];
+  const prodIds = [...new Set(reviews.map((r) => r.product_id))];
+  const [{ data: profs }, { data: prods }] = await Promise.all([
+    supabase.from("profiles").select("id, display_name").in("id", userIds),
+    supabase.from("products" as any).select("id, name, image_url").in("id", prodIds),
+  ]);
+  const um = new Map(((profs as any[]) ?? []).map((p) => [p.id, p.display_name || "Anonymous"]));
+  const pm = new Map(((prods as any[]) ?? []).map((p) => [p.id, p]));
+  const reviewItems: NewsItem[] = reviews.map((r) => {
+    const prod = pm.get(r.product_id);
+    return {
+      id: `rev-${r.id}`,
+      title: `${um.get(r.user_id) ?? "User"} reviewed ${prod?.name ?? "a product"}`,
+      body: r.review_text.slice(0, 180) + (r.review_text.length > 180 ? "…" : "") + `  ⭐ ${r.rating}/5`,
+      image_url: prod?.image_url ?? null,
+      kind: "review",
+      created_by: null,
+      created_at: r.created_at,
+    };
+  });
+  return [...adminItems, ...reviewItems].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+}
+
+export async function postNews(args: { title: string; body: string; image_url?: string | null; kind: NewsItem["kind"] }) {
+  await supabase.from("news_items" as any).insert({
+    title: args.title, body: args.body, image_url: args.image_url ?? null, kind: args.kind, created_by: "admin",
+  } as any);
+}
+
+export async function deleteNews(id: string) {
+  if (id.startsWith("rev-")) return;
+  await supabase.from("news_items" as any).delete().eq("id", id);
+}
+
+export async function likeNews(newsId: string, userId: string): Promise<{ liked: boolean; count: number }> {
+  if (newsId.startsWith("rev-")) return { liked: false, count: 0 };
+  const { data: existing } = await supabase.from("news_likes" as any).select("id").eq("news_id", newsId).eq("user_id", userId).maybeSingle();
+  if (existing) {
+    await supabase.from("news_likes" as any).delete().eq("id", (existing as any).id);
+  } else {
+    await supabase.from("news_likes" as any).insert({ news_id: newsId, user_id: userId } as any);
+  }
+  const { count } = await supabase.from("news_likes" as any).select("*", { count: "exact", head: true }).eq("news_id", newsId);
+  return { liked: !existing, count: count ?? 0 };
+}
+
+export async function newsStats(newsIds: string[], userId: string): Promise<Map<string, { likes: number; liked: boolean; comments: number }>> {
+  const dbIds = newsIds.filter((id) => !id.startsWith("rev-"));
+  const map = new Map<string, { likes: number; liked: boolean; comments: number }>();
+  newsIds.forEach((id) => map.set(id, { likes: 0, liked: false, comments: 0 }));
+  if (!dbIds.length) return map;
+  const [{ data: likes }, { data: mine }, { data: comments }] = await Promise.all([
+    supabase.from("news_likes" as any).select("news_id").in("news_id", dbIds),
+    supabase.from("news_likes" as any).select("news_id").in("news_id", dbIds).eq("user_id", userId),
+    supabase.from("news_comments" as any).select("news_id").in("news_id", dbIds),
+  ]);
+  ((likes as any[]) ?? []).forEach((l) => { const cur = map.get(l.news_id)!; cur.likes++; });
+  ((mine as any[]) ?? []).forEach((l) => { const cur = map.get(l.news_id)!; cur.liked = true; });
+  ((comments as any[]) ?? []).forEach((c) => { const cur = map.get(c.news_id)!; cur.comments++; });
+  return map;
+}
+
+export async function listNewsComments(newsId: string): Promise<{ id: string; body: string; created_at: string; display_name: string }[]> {
+  if (newsId.startsWith("rev-")) return [];
+  const { data } = await supabase.from("news_comments" as any).select("*").eq("news_id", newsId).order("created_at", { ascending: true });
+  const rows = ((data as any[]) ?? []);
+  if (!rows.length) return [];
+  const ids = [...new Set(rows.map((r) => r.user_id))];
+  const { data: profs } = await supabase.from("profiles").select("id, display_name").in("id", ids);
+  const m = new Map(((profs as any[]) ?? []).map((p) => [p.id, p.display_name || "User"]));
+  return rows.map((r) => ({ id: r.id, body: r.body, created_at: r.created_at, display_name: m.get(r.user_id) ?? "User" }));
+}
+
+export async function postNewsComment(newsId: string, userId: string, body: string): Promise<void> {
+  if (newsId.startsWith("rev-")) return;
+  await supabase.from("news_comments" as any).insert({ news_id: newsId, user_id: userId, body } as any);
+}
+
+// --- Tier upgrade attempt ---
+export async function recordTierUpgrade(userId: string, fromTier: string, toTier: string, feeKsh: number, txCode: string): Promise<void> {
+  await supabase.from("tier_upgrades" as any).insert({
+    user_id: userId, from_tier: fromTier, to_tier: toTier, fee_ksh: feeKsh, transaction_code: txCode,
+  } as any);
+}
+
