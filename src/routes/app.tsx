@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Registration } from "@/components/Registration";
 import { Dashboard } from "@/components/Dashboard";
 import { getSessionId, loadProfile, markLogin, type Profile } from "@/lib/api";
@@ -12,22 +12,30 @@ export const Route = createFileRoute("/app")({
 function AppEntry() {
   const [user, setUser] = useState<Profile | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const navigate = useNavigate();
+
+  async function bootUser(p: Profile) {
+    markLogin(p.id).catch(() => {});
+    if (typeof document !== "undefined" && p.theme_pref === "light") {
+      document.documentElement.classList.add("light");
+    }
+    if (!p.interview_responses) {
+      navigate({ to: "/onboarding" });
+      return;
+    }
+    setUser(p);
+  }
 
   useEffect(() => {
     (async () => {
       const id = getSessionId();
       if (id) {
         const p = await loadProfile(id);
-        if (p) {
-          setUser(p);
-          markLogin(p.id).catch(() => {});
-          if (typeof document !== "undefined" && p.theme_pref === "light") {
-            document.documentElement.classList.add("light");
-          }
-        }
+        if (p) await bootUser(p);
       }
       setLoaded(true);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!loaded) {
@@ -38,6 +46,6 @@ function AppEntry() {
     );
   }
 
-  if (!user) return <Registration onComplete={(u) => { markLogin(u.id).catch(() => {}); setUser(u); }} />;
+  if (!user) return <Registration onComplete={(u) => bootUser(u)} />;
   return <Dashboard user={user} setUser={setUser} onLogout={() => setUser(null)} />;
 }
