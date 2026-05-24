@@ -190,26 +190,6 @@ export async function loadProfile(id: string): Promise<Profile | null> {
   return p;
 }
 
-export async function loginProfile(phone: string, pin: string): Promise<Profile | null> {
-  const p = await findByPhone(phone);
-  if (!p || p.pin !== pin) return null;
-  return p;
-}
-
-export async function loadProfile(id: string): Promise<Profile | null> {
-  const { data } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
-  if (!data) return null;
-  let p = data as Profile;
-  if (p.last_reset_date !== todayStr()) {
-    const { data: updated } = await supabase
-      .from("profiles")
-      .update({ units_today: 0, last_reset_date: todayStr() })
-      .eq("id", id).select().single();
-    if (updated) p = updated as Profile;
-  }
-  return p;
-}
-
 export async function updateProfile(id: string, patch: Partial<Profile>): Promise<Profile> {
   const { data, error } = await supabase.from("profiles").update(patch as any).eq("id", id).select().single();
   if (error) throw error;
