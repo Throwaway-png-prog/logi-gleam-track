@@ -41,8 +41,17 @@ const FAQ = [
 ];
 
 function Landing() {
+  const navigate = useNavigate();
+  const standalone = useIsStandalone();
+
+  useEffect(() => {
+    if (standalone) navigate({ to: "/app" });
+  }, [standalone, navigate]);
+
   return (
     <div className="min-h-screen">
+      <InstallPrompt />
+
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/70 border-b border-border/40">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
