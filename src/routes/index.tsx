@@ -180,8 +180,13 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-border/40 py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} LogiBack Earn. Get paid to review products.
+      <footer className="border-t border-border/40 py-8 text-center text-xs text-muted-foreground space-y-2">
+        <div className="flex items-center justify-center gap-4">
+          <Link to="/terms" className="hover:text-foreground">Terms & Conditions</Link>
+          <span aria-hidden>·</span>
+          <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+        </div>
+        <p>© {new Date().getFullYear()} LogiBack Earn. Get paid to review products.</p>
       </footer>
     </div>
   );
