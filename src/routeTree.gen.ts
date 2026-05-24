@@ -22,6 +22,7 @@ import { Route as NewsRouteImport } from './routes/news'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
+import { Route as JoinCodeRouteImport } from './routes/join.$code'
 
 const X7k2p9m4q1adminRoute = X7k2p9m4q1adminRouteImport.update({
   id: '/x7k2p9m4q1admin',
@@ -88,6 +89,11 @@ const ProductsIdRoute = ProductsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ProductsRoute,
 } as any)
+const JoinCodeRoute = JoinCodeRouteImport.update({
+  id: '/join/$code',
+  path: '/join/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
+  '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesByTo {
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
+  '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesById {
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
+  '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
+    | '/join/$code'
     | '/products/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
+    | '/join/$code'
     | '/products/$id'
   id:
     | '__root__'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/upgrade'
     | '/x7k2p9m4q1admin'
+    | '/join/$code'
     | '/products/$id'
   fileRoutesById: FileRoutesById
 }
@@ -196,6 +208,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   UpgradeRoute: typeof UpgradeRoute
   X7k2p9m4q1adminRoute: typeof X7k2p9m4q1adminRoute
+  JoinCodeRoute: typeof JoinCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsIdRouteImport
       parentRoute: typeof ProductsRoute
     }
+    '/join/$code': {
+      id: '/join/$code'
+      path: '/join/$code'
+      fullPath: '/join/$code'
+      preLoaderRoute: typeof JoinCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -319,6 +339,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   UpgradeRoute: UpgradeRoute,
   X7k2p9m4q1adminRoute: X7k2p9m4q1adminRoute,
+  JoinCodeRoute: JoinCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
