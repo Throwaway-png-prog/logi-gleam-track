@@ -283,13 +283,20 @@ export async function approveReview(req: ReviewSubmission): Promise<void> {
   const { data: prof } = await supabase.from("profiles").select("*").eq("id", req.user_id).single();
   if (prof) {
     const p = prof as Profile;
+    const wasFirst = (p.reviews_approved ?? 0) === 0;
     await supabase.from("profiles").update({
       points: p.points + req.points_reward,
       reviews_approved: (p.reviews_approved ?? 0) + 1,
+      lifetime_earned: Number(p.lifetime_earned ?? 0) + req.points_reward,
     } as any).eq("id", p.id);
     await supabase.from("points_transactions" as any).insert({
       user_id: p.id, delta: req.points_reward, reason: "Review approved", ref_id: req.id,
     } as any);
+
+    // First-job referral payout
+    if (wasFirst && p.referred_by) {
+      await creditFirstJobReferral(p.id, p.referred_by);
+    }
   }
 }
 
