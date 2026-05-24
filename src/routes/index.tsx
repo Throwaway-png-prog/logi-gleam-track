@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight, ShoppingBag, Star, Wallet, ShieldCheck, Sparkles, Plus, Minus,
   TrendingUp, Users, Coins, Quote,
 } from "lucide-react";
+import { InstallPrompt, useIsStandalone } from "@/components/InstallPrompt";
 
 export const Route = createFileRoute("/")({
   component: Landing,
