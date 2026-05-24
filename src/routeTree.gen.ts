@@ -16,6 +16,7 @@ import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as RedeemRouteImport } from './routes/redeem'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
@@ -55,6 +56,11 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -74,6 +80,7 @@ const ProductsIdRoute = ProductsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/privacy'
     | '/products'
     | '/profile'
     | '/redeem'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/privacy'
     | '/products'
     | '/profile'
     | '/redeem'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/privacy'
     | '/products'
     | '/profile'
     | '/redeem'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   RedeemRoute: typeof RedeemRoute
@@ -210,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -249,6 +269,7 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
+  PrivacyRoute: PrivacyRoute,
   ProductsRoute: ProductsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   RedeemRoute: RedeemRoute,
