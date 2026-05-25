@@ -1,13 +1,14 @@
 {
   "name": "LogiBack Earn",
-  "short_name": "LogiBack Earn",
-  "description": "Get paid to review products. Withdraw to M-Pesa.",
-  "start_url": "/",
+  "short_name": "LogiBack",
+  "description": "Kenya's Trusted Review Platform — get paid in KSh to review products.",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#0a1f17",
   "theme_color": "#0a1f17",
   "orientation": "portrait",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
