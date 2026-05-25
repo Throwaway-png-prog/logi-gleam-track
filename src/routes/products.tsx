@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Loader2, Star, X, Sparkles } from "lucide-react";
+import { Search, Loader2, Star, X, Sparkles, BookOpen } from "lucide-react";
 import { listAvailableProducts, getSessionId, loadProfile, type Product, type Profile } from "@/lib/api";
 import { formatKsh } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { ReviewForm } from "@/components/ReviewForm";
+import { ReviewGuidelinesModal, hasAckedGuidelines } from "@/components/ReviewGuidelinesModal";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
@@ -22,6 +23,8 @@ function ProductsPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
   const [selected, setSelected] = useState<Product | null>(null);
+  const [showGuidelines, setShowGuidelines] = useState(false);
+  const [pending, setPending] = useState<Product | null>(null);
 
   async function load() {
     const sid = getSessionId();
@@ -33,6 +36,11 @@ function ProductsPage() {
     setProducts(p); setLoading(false);
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  function openProduct(p: Product) {
+    if (!hasAckedGuidelines()) { setPending(p); setShowGuidelines(true); return; }
+    setSelected(p);
+  }
 
   const filtered = useMemo(() => products.filter((p) =>
     (cat === "All" || p.category === cat) &&
@@ -50,6 +58,10 @@ function ProductsPage() {
           <p className="text-sm text-gold flex items-center gap-1.5 mt-1">
             <Sparkles className="size-3.5" /> {products.length} new products available
           </p>
+          <button onClick={() => setShowGuidelines(true)}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass border border-gold/40 text-xs font-semibold text-gold">
+            <BookOpen className="size-3.5" /> Review Guidelines
+          </button>
         </div>
 
         <div className="relative mb-4">
@@ -70,29 +82,40 @@ function ProductsPage() {
         </div>
 
         {loading ? (
-          <div className="py-10 flex justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="glass rounded-2xl overflow-hidden">
+                <div className="aspect-square bg-muted/40 shimmer" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 w-2/3 bg-muted/40 shimmer rounded" />
+                  <div className="h-3 w-1/2 bg-muted/40 shimmer rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filtered.map((p, i) => (
-              <motion.button key={p.id} type="button"
+              <motion.div key={p.id}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.3) }}
-                onClick={() => setSelected(p)}
-                className="text-left block glass rounded-2xl overflow-hidden active:scale-[0.98] transition">
-                <div className="aspect-square bg-muted overflow-hidden relative">
-                  <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
-                  <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-gradient-gold text-gold-foreground text-[10px] font-bold shadow-gold">
-                    +{p.points_reward}
+                className="glass rounded-2xl overflow-hidden">
+                <button type="button" onClick={() => openProduct(p)} className="text-left block w-full active:scale-[0.98] transition">
+                  <div className="aspect-square bg-muted overflow-hidden relative">
+                    <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+                    <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-gradient-gold text-gold-foreground text-[10px] font-bold shadow-gold">
+                      +{formatKsh(p.points_reward)}
+                    </div>
                   </div>
-                </div>
-                <div className="p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    {p.platform} · <Star className="size-3 text-gold fill-gold" />
-                  </p>
-                  <p className="font-semibold text-sm line-clamp-1 mt-0.5">{p.name}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-1">{p.brand}</p>
-                  <p className="text-xs font-semibold mt-1">{formatKsh(p.price_ksh)}</p>
-                </div>
-              </motion.button>
+                  <div className="p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      {p.platform} · <Star className="size-3 text-gold fill-gold" />
+                    </p>
+                    <p className="font-semibold text-sm line-clamp-1 mt-0.5">{p.name}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">{p.brand}</p>
+                    <p className="text-xs font-semibold mt-1">{formatKsh(p.price_ksh)}</p>
+                  </div>
+                </button>
+              </motion.div>
             ))}
             {filtered.length === 0 && (
               <p className="col-span-2 py-10 text-center text-sm text-muted-foreground">
@@ -102,6 +125,12 @@ function ProductsPage() {
           </div>
         )}
       </div>
+
+      <ReviewGuidelinesModal
+        open={showGuidelines}
+        onClose={() => { setShowGuidelines(false); setPending(null); }}
+        onAccept={() => { if (pending) { setSelected(pending); setPending(null); } }}
+      />
 
       <AnimatePresence>
         {selected && (

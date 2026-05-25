@@ -3,27 +3,28 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
   ArrowRight, ShoppingBag, Star, Wallet, ShieldCheck, Sparkles, Plus, Minus,
-  TrendingUp, Users, Coins, Quote,
+  TrendingUp, Users, Coins, Quote, Smartphone, Lock,
 } from "lucide-react";
 import { InstallPrompt, useIsStandalone } from "@/components/InstallPrompt";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "LogiBack Earn — Get paid to review products in Kenya" },
-      { name: "description", content: "Earn real KSh writing honest product reviews. Withdraw to M-Pesa from 1,000 points. Join 50,000+ Kenyans earning daily." },
-      { property: "og:title", content: "LogiBack Earn — Get paid to review products" },
-      { property: "og:description", content: "Earn real KSh writing honest product reviews. Withdraw to M-Pesa from 1,000 points." },
+      { title: "LogiBack Earn — Kenya's Trusted Review Platform" },
+      { name: "description", content: "Get paid in real KSh to review products. Withdraw to M-Pesa instantly. Built in Kenya, trusted by thousands." },
+      { property: "og:title", content: "LogiBack Earn — Kenya's Trusted Review Platform" },
+      { property: "og:description", content: "Get paid in real KSh to review products. Withdraw to M-Pesa instantly." },
       { name: "theme-color", content: "#0a1f17" },
     ],
   }),
 });
 
 const STEPS = [
-  { icon: ShoppingBag, title: "Pick a product", body: "Browse 50+ active jobs from Jumia, Kilimall, Amazon and more." },
-  { icon: Star, title: "Write your review", body: "Visit the product page, leave a genuine review with a screenshot." },
-  { icon: Wallet, title: "Withdraw to M-Pesa", body: "1 point = KSh 1. Cash out anytime from 1,000 points." },
+  { icon: ShoppingBag, title: "Pick a product", body: "Browse active jobs from Jumia, Kilimall, Amazon and more." },
+  { icon: Star, title: "Write your review", body: "Search the product yourself, leave an honest review with a screenshot." },
+  { icon: Wallet, title: "Withdraw to M-Pesa", body: "Get paid in real KSh. Cash out anytime from KSh 1,000." },
 ];
 
 const TESTIMONIALS = [
@@ -34,10 +35,17 @@ const TESTIMONIALS = [
 
 const FAQ = [
   { q: "Is this really free to join?", a: "Yes. Sign up with your phone and start earning on the Starter tier today." },
-  { q: "How fast is M-Pesa withdrawal?", a: "Once a review is approved, you can withdraw instantly to your verified M-Pesa number. Most payouts arrive in under 10 minutes." },
+  { q: "How fast is M-Pesa withdrawal?", a: "Once a review is approved, you can withdraw to your verified M-Pesa number. Most payouts arrive in under 10 minutes." },
   { q: "What stops people from copy-pasting reviews?", a: "Every review is quality-checked by our team. Spam or duplicate content is rejected and may suspend your account." },
-  { q: "Do I need a smartphone?", a: "Yes. LogiBack Earn is a mobile-first PWA. Add it to your home screen for the best experience." },
-  { q: "Can I refer friends?", a: "Absolutely. You get 500 points whenever a referred friend completes their first approved review." },
+  { q: "Do I need a smartphone?", a: "Yes. LogiBack Earn is a mobile-first app. Add it to your home screen for the best experience." },
+  { q: "Can I refer friends?", a: "Yes. You earn KSh 100 whenever a referred friend completes their first approved review." },
+];
+
+const TRUST = [
+  { icon: () => <span className="text-base">🇰🇪</span>, label: "Built in Kenya" },
+  { icon: Lock, label: "SSL Secured" },
+  { icon: Smartphone, label: "M-Pesa Payouts" },
+  { icon: Users, label: "10,000+ Reviewers" },
 ];
 
 function Landing() {
@@ -52,31 +60,24 @@ function Landing() {
     <div className="min-h-screen">
       <InstallPrompt />
 
-      {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/70 border-b border-border/40">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="size-9 rounded-xl bg-gradient-primary shadow-glow flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">LB</span>
-            </div>
-            <span className="font-bold">LogiBack Earn</span>
-          </Link>
+          <Link to="/"><Logo size={40} tagline /></Link>
           <Link to="/app" className="h-10 px-5 rounded-full bg-gradient-gold text-gold-foreground text-sm font-bold flex items-center gap-2 shadow-gold">
             Get started <ArrowRight className="size-4" />
           </Link>
         </div>
       </header>
 
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-transparent to-transparent" />
         <div className="absolute top-20 -left-20 size-80 rounded-full bg-primary/30 blur-3xl" />
         <div className="absolute top-40 -right-20 size-80 rounded-full bg-gold/20 blur-3xl" />
 
-        <div className="relative max-w-6xl mx-auto px-5 pt-12 pb-20 text-center">
+        <div className="relative max-w-6xl mx-auto px-5 pt-12 pb-16 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-semibold mb-6">
-            <Sparkles className="size-3.5" /> Trusted by 50,000+ Kenyans
+            <Sparkles className="size-3.5" /> Kenya's trusted review platform
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -87,7 +88,7 @@ function Landing() {
 
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="mt-5 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-            Join thousands of Kenyans earning real KSh writing honest product reviews. Withdraw straight to M-Pesa from 1,000 points.
+            Earn real KSh writing honest product reviews. Withdraw straight to M-Pesa.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
@@ -100,16 +101,18 @@ function Landing() {
             </a>
           </motion.div>
 
-          {/* Stats */}
-          <div className="mt-16 grid grid-cols-3 gap-3 sm:gap-6 max-w-3xl mx-auto">
-            <Stat icon={Users} label="Active reviewers" value="50K+" />
-            <Stat icon={Star} label="Reviews submitted" value="50K+" />
-            <Stat icon={Coins} label="Paid to workers" value="KSh 2.5M+" />
+          {/* Trust strip */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            {TRUST.map((t) => (
+              <div key={t.label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <t.icon className="size-4 text-gold" />
+                <span className="font-semibold">{t.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
       <section id="how-it-works" className="max-w-6xl mx-auto px-5 py-20">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.3em] text-gold font-semibold">How it works</p>
@@ -131,7 +134,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* Testimonials */}
       <section className="bg-gradient-to-b from-transparent via-primary/5 to-transparent py-20">
         <div className="max-w-6xl mx-auto px-5">
           <div className="text-center mb-12">
@@ -156,7 +158,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* FAQ */}
       <section className="max-w-3xl mx-auto px-5 py-20">
         <div className="text-center mb-10">
           <p className="text-xs uppercase tracking-[0.3em] text-gold font-semibold">FAQ</p>
@@ -167,7 +168,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="max-w-4xl mx-auto px-5 py-16">
         <div className="glass rounded-3xl p-10 text-center relative overflow-hidden border border-gold/30">
           <div className="absolute -top-20 -right-20 size-60 rounded-full bg-gradient-gold opacity-30 blur-3xl" />
@@ -186,18 +186,8 @@ function Landing() {
           <span aria-hidden>·</span>
           <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} LogiBack Earn. Get paid to review products.</p>
+        <p>© {new Date().getFullYear()} LogiBack Earn. Kenya's Trusted Review Platform.</p>
       </footer>
-    </div>
-  );
-}
-
-function Stat({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string }) {
-  return (
-    <div className="glass rounded-2xl p-4 sm:p-6 text-center">
-      <Icon className="size-5 mx-auto text-gold mb-2" />
-      <p className="text-2xl sm:text-3xl font-extrabold text-gradient-gold">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{label}</p>
     </div>
   );
 }
