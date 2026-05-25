@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, KeyRound, CheckCircle2, Loader2, Boxes, AlertCircle, User, AtSign } from "lucide-react";
+import { Phone, KeyRound, CheckCircle2, Loader2, AlertCircle, User, AtSign, Lock } from "lucide-react";
 import { findByPhone, registerProfile, loginProfile, setSessionId, getPendingReferral, setPendingReferral, findProfileByReferralCode, type Profile } from "@/lib/api";
+import { checkLockout, logLogin, friendly } from "@/lib/admin";
 import { formatPhoneKE } from "@/lib/format";
+import { Logo } from "./Logo";
 
 type Step = "phone" | "name" | "display" | "pin" | "confirm" | "welcome";
 
@@ -19,7 +21,25 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
   const [mode, setMode] = useState<"register" | "login">("register");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [termsOk, setTermsOk] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [referralCode] = useState<string | null>(() => getPendingReferral());
+
+  // Lockout / challenge
+  const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [failCount, setFailCount] = useState(0);
+  const [challenge, setChallenge] = useState<{ a: number; b: number } | null>(null);
+  const [challengeAnswer, setChallengeAnswer] = useState("");
+
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const t = setInterval(() => {
+      const s = Math.max(0, Math.ceil((lockedUntil.getTime() - Date.now()) / 1000));
+      setCountdown(s);
+      if (s === 0) { setLockedUntil(null); setError(null); }
+    }, 500);
+    return () => clearInterval(t);
+  }, [lockedUntil]);
 
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneValid = phoneDigits.length >= 9 && phoneDigits.length <= 12;
@@ -27,11 +47,18 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
   async function continuePhone() {
     setLoading(true); setError(null);
     try {
+      const lock = await checkLockout(phone);
+      if (!lock.allowed && lock.lockedUntil) {
+        setLockedUntil(new Date(lock.lockedUntil));
+        setError("Too many failed attempts. Try again in a few minutes.");
+        return;
+      }
+      setFailCount(lock.failsRecent);
       const existing = await findByPhone(phone);
       setMode(existing ? "login" : "register");
       setStep(existing ? "pin" : "name");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Network error");
+      setError(friendly(e));
     } finally { setLoading(false); }
   }
 
@@ -40,16 +67,45 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
     setLoading(true); setError(null);
     try {
       if (mode === "login") {
+        if (failCount >= 2 && challenge) {
+          const expected = challenge.a + challenge.b;
+          if (Number(challengeAnswer) !== expected) {
+            setError("Wrong answer to the security check. Try again.");
+            setLoading(false);
+            return;
+          }
+        }
         const u = await loginProfile(phone, pin);
-        if (!u) { setError("Incorrect PIN"); setLoading(false); return; }
+        if (!u) {
+          await logLogin(phone, false);
+          const next = failCount + 1;
+          setFailCount(next);
+          if (next >= 5) {
+            setLockedUntil(new Date(Date.now() + 5 * 60 * 1000));
+            setError("Too many failed attempts. Your account is locked for 5 minutes.");
+          } else if (next >= 2) {
+            setChallenge({ a: 3 + Math.floor(Math.random() * 7), b: 2 + Math.floor(Math.random() * 8) });
+            setChallengeAnswer("");
+            setError("That PIN doesn't match. Please answer the security check and try again.");
+          } else {
+            setError("That PIN doesn't match. Please try again.");
+          }
+          setLoading(false);
+          return;
+        }
+        // success
+        await logLogin(phone, true);
+        if (typeof window !== "undefined") {
+          const days = remember ? 90 : 30;
+          localStorage.setItem("logiback.session_exp", String(Date.now() + days * 86400_000));
+        }
         setSessionId(u.id);
         onComplete(u);
         return;
       }
-      // register flow needs confirm
       setStep("confirm"); setLoading(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not sign in");
+      setError(friendly(e));
       setLoading(false);
     }
   }
@@ -65,32 +121,31 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
         if (ref) referrerId = ref.id;
       }
       const u = await registerProfile(phone, pin, fullName.trim(), displayName.trim(), {
-        referred_by: referrerId,
-        terms_accepted: true,
+        referred_by: referrerId, terms_accepted: true,
       });
       setPendingReferral(null);
       setProfile(u); setSessionId(u.id); setStep("welcome");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not create account");
+      setError(friendly(e));
     } finally { setLoading(false); }
   }
+
+  const locked = lockedUntil && lockedUntil.getTime() > Date.now();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col items-center">
-        <div className="size-16 rounded-2xl bg-gradient-primary shadow-glow flex items-center justify-center mb-4">
-          <Boxes className="size-8 text-primary-foreground" />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <Logo size={56} showText={false} />
+        <h1 className="text-3xl font-bold tracking-tight mt-4">
           Logi<span className="text-gradient-gold">Back Earn</span>
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Get paid to review products.</p>
+        <p className="text-sm text-muted-foreground mt-1">Kenya's Trusted Review Platform</p>
       </motion.div>
 
       <div className="w-full max-w-sm glass rounded-3xl p-6 shadow-elegant">
         <AnimatePresence mode="wait">
           {step === "phone" && (
-            <motion.div key="phone" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="phone" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Sign in or register</label>
               <h2 className="text-xl font-semibold mt-1 mb-5">Your phone number</h2>
               <div className="relative">
@@ -98,12 +153,18 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
                 <input
                   type="tel" inputMode="tel" placeholder="0712 345 678"
                   value={phone} onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={!!locked}
+                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                 />
               </div>
               {phone && <p className="mt-2 text-xs text-muted-foreground">Saved as <span className="font-mono text-foreground">{formatPhoneKE(phone)}</span></p>}
-              {error && <ErrorBox msg={error} />}
-              <button disabled={!phoneValid || loading} onClick={continuePhone}
+              {locked && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  <Lock className="size-4" /> Locked. Try again in {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
+                </div>
+              )}
+              {error && !locked && <ErrorBox msg={error} />}
+              <button disabled={!phoneValid || loading || !!locked} onClick={continuePhone}
                 className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 disabled:shadow-none active:scale-[0.98] transition flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="size-5 animate-spin" /> : "Continue"}
               </button>
@@ -111,7 +172,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
           )}
 
           {step === "name" && (
-            <motion.div key="name" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="name" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Step 2 of 5</label>
               <h2 className="text-xl font-semibold mt-1 mb-1">Your full name</h2>
               <p className="text-sm text-muted-foreground mb-5">Enter your full name as it appears on ID.</p>
@@ -130,7 +191,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
           )}
 
           {step === "display" && (
-            <motion.div key="display" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="display" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Step 3 of 5</label>
               <h2 className="text-xl font-semibold mt-1 mb-1">Pick a display name</h2>
               <p className="text-sm text-muted-foreground mb-5">This is your handle on the leaderboard.</p>
@@ -149,7 +210,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
           )}
 
           {step === "pin" && (
-            <motion.div key="pin" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="pin" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">
                 {mode === "login" ? "Welcome back" : "Step 4 of 5"}
               </label>
@@ -160,12 +221,33 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
                 {mode === "login" ? "Unlock your account." : "You'll need this on every device."}
               </p>
               <PinInput value={pin} onChange={setPin} />
+
+              {mode === "login" && challenge && failCount >= 2 && (
+                <div className="mt-4 rounded-xl border border-gold/40 bg-gold/5 p-3">
+                  <p className="text-xs text-gold mb-2 flex items-center gap-1"><ShieldIcon /> Security check</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono">{challenge.a} + {challenge.b} = </span>
+                    <input
+                      type="tel" inputMode="numeric" value={challengeAnswer}
+                      onChange={(e) => setChallengeAnswer(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                      className="w-20 h-9 px-2 rounded-lg bg-input border border-border text-center" />
+                  </div>
+                </div>
+              )}
+
+              {mode === "login" && (
+                <label className="mt-4 flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="size-4 accent-[color:var(--primary)]" />
+                  Remember this device for 90 days
+                </label>
+              )}
+
               {error && <ErrorBox msg={error} />}
               <button disabled={pin.length !== 4 || loading} onClick={submitPin}
                 className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 active:scale-[0.98] transition flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="size-5 animate-spin" /> : mode === "login" ? "Sign in" : "Continue"}
               </button>
-              <button onClick={() => { setStep("phone"); setPin(""); setError(null); }}
+              <button onClick={() => { setStep("phone"); setPin(""); setError(null); setChallenge(null); }}
                 className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground">
                 Use a different number
               </button>
@@ -173,7 +255,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
           )}
 
           {step === "confirm" && (
-            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Step 5 of 5</label>
               <h2 className="text-xl font-semibold mt-1 mb-1">Confirm your PIN</h2>
               <p className="text-sm text-muted-foreground mb-5">Type it again to be sure.</p>
@@ -186,8 +268,8 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
                   className="mt-0.5 size-5 rounded border-border accent-[color:var(--primary)]"
                 />
                 <span className="text-xs text-muted-foreground leading-relaxed">
-                  I agree to the <Link to="/terms" target="_blank" className="text-gold underline">Terms & Conditions</Link> and{" "}
-                  <Link to="/privacy" target="_blank" className="text-gold underline">Privacy Policy</Link>.
+                  I agree to the <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-gold underline">Terms & Conditions</Link> and{" "}
+                  <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-gold underline">Privacy Policy</Link>.
                 </span>
               </label>
 
@@ -208,7 +290,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
           )}
 
           {step === "welcome" && profile && (
-            <motion.div key="welcome" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+            <motion.div key="welcome" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
               <motion.div
                 initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
@@ -225,7 +307,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
               </div>
               <button onClick={() => onComplete(profile)}
                 className="mt-6 w-full h-14 rounded-xl bg-gradient-gold text-gold-foreground font-semibold shadow-gold active:scale-[0.98] transition">
-                Enter dashboard
+                Start earning
               </button>
             </motion.div>
           )}
@@ -235,6 +317,10 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
       <p className="mt-6 text-xs text-muted-foreground/70">Earn while you work — every review pays cash.</p>
     </div>
   );
+}
+
+function ShieldIcon() {
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
 }
 
 function PinInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
