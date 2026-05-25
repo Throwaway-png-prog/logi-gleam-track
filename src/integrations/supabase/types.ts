@@ -46,6 +46,36 @@ export type Database = {
           },
         ]
       }
+      admin_actions: {
+        Row: {
+          action: string
+          admin_label: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_label?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_label?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       emergency_alerts: {
         Row: {
           admin_id: string | null
@@ -145,6 +175,30 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          id: string
+          lockout_until: string | null
+          phone_masked: string
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          id?: string
+          lockout_until?: string | null
+          phone_masked: string
+          success?: boolean
+        }
+        Update: {
+          attempted_at?: string
+          id?: string
+          lockout_until?: string | null
+          phone_masked?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       message_reads: {
         Row: {
           id: string
@@ -222,27 +276,33 @@ export type Database = {
           body: string
           created_at: string
           created_by: string | null
+          featured: boolean
           id: string
           image_url: string | null
           kind: string
+          publish_at: string
           title: string
         }
         Insert: {
           body: string
           created_at?: string
           created_by?: string | null
+          featured?: boolean
           id?: string
           image_url?: string | null
           kind?: string
+          publish_at?: string
           title: string
         }
         Update: {
           body?: string
           created_at?: string
           created_by?: string | null
+          featured?: boolean
           id?: string
           image_url?: string | null
           kind?: string
+          publish_at?: string
           title?: string
         }
         Relationships: []
@@ -265,6 +325,36 @@ export type Database = {
           id?: string
           news_id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      payment_numbers: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          label: string
+          last_used_at: string | null
+          msisdn: string
+          use_count: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          last_used_at?: string | null
+          msisdn: string
+          use_count?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          msisdn?: string
+          use_count?: number
         }
         Relationships: []
       }
@@ -348,12 +438,16 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          blocked: boolean
+          blocked_reason: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string
           display_name_changed_at: string | null
           full_name: string
           id: string
           interview_responses: Json | null
+          last_active_at: string | null
           last_login_at: string | null
           last_reset_date: string
           last_review_date: string | null
@@ -362,6 +456,8 @@ export type Database = {
           mpesa_verified: boolean
           phone: string
           pin: string
+          pin_hashed: boolean
+          pin_salt: string | null
           points: number
           referral_code: string | null
           referred_by: string | null
@@ -374,16 +470,21 @@ export type Database = {
           tier: string
           total_referral_earnings: number
           units_today: number
+          warnings: number
           worker_id: string
         }
         Insert: {
           avatar_url?: string | null
+          blocked?: boolean
+          blocked_reason?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
           interview_responses?: Json | null
+          last_active_at?: string | null
           last_login_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
@@ -392,6 +493,8 @@ export type Database = {
           mpesa_verified?: boolean
           phone: string
           pin: string
+          pin_hashed?: boolean
+          pin_salt?: string | null
           points?: number
           referral_code?: string | null
           referred_by?: string | null
@@ -404,16 +507,21 @@ export type Database = {
           tier?: string
           total_referral_earnings?: number
           units_today?: number
+          warnings?: number
           worker_id: string
         }
         Update: {
           avatar_url?: string | null
+          blocked?: boolean
+          blocked_reason?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
           interview_responses?: Json | null
+          last_active_at?: string | null
           last_login_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
@@ -422,6 +530,8 @@ export type Database = {
           mpesa_verified?: boolean
           phone?: string
           pin?: string
+          pin_hashed?: boolean
+          pin_salt?: string | null
           points?: number
           referral_code?: string | null
           referred_by?: string | null
@@ -434,6 +544,7 @@ export type Database = {
           tier?: string
           total_referral_earnings?: number
           units_today?: number
+          warnings?: number
           worker_id?: string
         }
         Relationships: []
@@ -568,9 +679,11 @@ export type Database = {
           emergency_started_at: string | null
           id: number
           maintenance: boolean
+          redemptions_frozen: boolean
           redemptions_on_hold: boolean
           registration_open: boolean
           updated_at: string
+          upgrades_frozen: boolean
         }
         Insert: {
           emergency_active?: boolean
@@ -579,9 +692,11 @@ export type Database = {
           emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
+          redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
           registration_open?: boolean
           updated_at?: string
+          upgrades_frozen?: boolean
         }
         Update: {
           emergency_active?: boolean
@@ -590,9 +705,11 @@ export type Database = {
           emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
+          redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
           registration_open?: boolean
           updated_at?: string
+          upgrades_frozen?: boolean
         }
         Relationships: []
       }
@@ -631,6 +748,7 @@ export type Database = {
           amount_paid: number
           created_at: string
           id: string
+          payment_number_id: string | null
           requested_tier: string
           status: string
           transaction_code: string
@@ -640,6 +758,7 @@ export type Database = {
           amount_paid: number
           created_at?: string
           id?: string
+          payment_number_id?: string | null
           requested_tier: string
           status?: string
           transaction_code: string
@@ -649,6 +768,7 @@ export type Database = {
           amount_paid?: number
           created_at?: string
           id?: string
+          payment_number_id?: string | null
           requested_tier?: string
           status?: string
           transaction_code?: string

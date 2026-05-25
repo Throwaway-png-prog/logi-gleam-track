@@ -1,25 +1,29 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ShoppingBag, Wallet, Crown, History, UserCircle2, X, Home } from "lucide-react";
+import { Bell, ShoppingBag, Wallet, Crown, History, X, Home, Newspaper } from "lucide-react";
 import {
-  listMessagesFor, getReadMessageIds, markMessageRead,
+  listMessagesFor, getReadMessageIds, markMessageRead, setSessionId,
   type Profile, type Message,
 } from "@/lib/api";
 import { initialsOf, timeAgo, formatKsh } from "@/lib/format";
+import { Logo } from "./Logo";
+import { OfflineIndicator } from "./OfflineIndicator";
+import { IdleTimeout } from "./IdleTimeout";
 
 const NAV = [
   { to: "/app", label: "Home", icon: Home },
-  { to: "/products", label: "Products", icon: ShoppingBag },
-  { to: "/redeem", label: "Redeem", icon: Wallet },
-  { to: "/upgrade", label: "Upgrade", icon: Crown },
-  { to: "/profile", label: "History", icon: History },
+  { to: "/products", label: "Earn", icon: ShoppingBag },
+  { to: "/news", label: "News", icon: Newspaper },
+  { to: "/redeem", label: "Wallet", icon: Wallet },
+  { to: "/profile", label: "Me", icon: History },
 ] as const;
 
 export function AppShell({ user, children }: { user: Profile; children: React.ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   async function refresh() {
     const [m, r] = await Promise.all([listMessagesFor(user), getReadMessageIds(user.id)]);
@@ -39,17 +43,13 @@ export function AppShell({ user, children }: { user: Profile; children: React.Re
 
   return (
     <div className="min-h-screen">
-      {/* Sticky header */}
+      <OfflineIndicator />
+      <IdleTimeout onTimeout={() => { setSessionId(null); navigate({ to: "/app" }); }} />
+
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/70 border-b border-border/40">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-3">
-          <Link to="/app" className="flex items-center gap-2 shrink-0">
-            <div className="size-9 rounded-xl bg-gradient-primary shadow-glow flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">LB</span>
-            </div>
-            <span className="font-bold hidden sm:block">LogiBack Earn</span>
-          </Link>
+          <Link to="/app"><Logo size={36} showText className="shrink-0" /></Link>
 
-          {/* Desktop nav pills */}
           <nav className="hidden md:flex items-center gap-1 ml-4">
             {NAV.map((n) => {
               const active = location.pathname === n.to || (n.to !== "/app" && location.pathname.startsWith(n.to));
@@ -76,8 +76,8 @@ export function AppShell({ user, children }: { user: Profile; children: React.Re
                 </span>
               )}
             </button>
-            <Link to="/profile" className="size-10 rounded-xl bg-gradient-primary text-primary-foreground font-bold flex items-center justify-center shadow-glow text-sm">
-              {initialsOf(user.display_name || user.full_name)}
+            <Link to="/profile" className="size-10 rounded-xl bg-gradient-primary text-primary-foreground font-bold flex items-center justify-center shadow-glow text-sm overflow-hidden">
+              {user.avatar_url ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> : initialsOf(user.display_name || user.full_name)}
             </Link>
           </div>
         </div>
@@ -85,7 +85,6 @@ export function AppShell({ user, children }: { user: Profile; children: React.Re
 
       <main className="pb-24 md:pb-8">{children}</main>
 
-      {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl bg-background/85 border-t border-border/50 pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-5 h-16">
           {NAV.map((n) => {
@@ -101,7 +100,6 @@ export function AppShell({ user, children }: { user: Profile; children: React.Re
         </div>
       </nav>
 
-      {/* Notification center */}
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

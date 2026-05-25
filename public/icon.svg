@@ -1,19 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0a1f17"/>
-      <stop offset="1" stop-color="#102b22"/>
-    </linearGradient>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3ddc97"/>
-      <stop offset="1" stop-color="#e7c454"/>
+    <linearGradient id="bagG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#00A84D"/>
+      <stop offset="1" stop-color="#00843D"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <g fill="none" stroke="url(#g)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M128 168l128-64 128 64-128 64z"/>
-    <path d="M128 168v176l128 64V232"/>
-    <path d="M384 168v176l-128 64"/>
-  </g>
-  <circle cx="384" cy="128" r="36" fill="#e7c454"/>
+  <rect width="64" height="64" rx="14" fill="#0a1f17"/>
+  <!-- Handles -->
+  <path d="M22 22 V18 a10 10 0 0 1 20 0 V22" stroke="#FFD700" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Bag body -->
+  <path d="M14 22 H50 L46 52 H18 Z" fill="url(#bagG)"/>
+  <!-- Kenya flag stripe -->
+  <rect x="18" y="46" width="28" height="2" fill="#1A1A1A"/>
+  <rect x="18" y="48" width="28" height="2" fill="#BB0000"/>
+  <rect x="18" y="50" width="28" height="2" fill="#006633"/>
+  <!-- Star -->
+  <path d="M32 28 l2.4 4.9 5.4.8 -3.9 3.8.9 5.4 -4.8-2.5 -4.8 2.5 .9-5.4 -3.9-3.8 5.4-.8z" fill="#FFD700"/>
 </svg>
