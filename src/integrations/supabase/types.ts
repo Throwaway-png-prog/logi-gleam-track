@@ -76,6 +76,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_challenges: {
+        Row: {
+          challenge_key: string
+          completed_at: string | null
+          created_at: string
+          date: string
+          id: string
+          progress: number
+          reward_ksh: number
+          target: number
+          user_id: string
+        }
+        Insert: {
+          challenge_key: string
+          completed_at?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          progress?: number
+          reward_ksh: number
+          target: number
+          user_id: string
+        }
+        Update: {
+          challenge_key?: string
+          completed_at?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          progress?: number
+          reward_ksh?: number
+          target?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_alerts: {
         Row: {
           admin_id: string | null
@@ -393,6 +429,27 @@ export type Database = {
           },
         ]
       }
+      product_views: {
+        Row: {
+          id: string
+          product_id: string
+          seen_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          seen_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean
@@ -437,21 +494,26 @@ export type Database = {
       }
       profiles: {
         Row: {
+          achievements: Json
           avatar_url: string | null
           blocked: boolean
           blocked_reason: string | null
           created_at: string
+          current_streak: number
           deleted_at: string | null
           display_name: string
           display_name_changed_at: string | null
           full_name: string
           id: string
           interview_responses: Json | null
+          jobs_in_tier: number
           last_active_at: string | null
           last_login_at: string | null
           last_reset_date: string
           last_review_date: string | null
+          last_streak_date: string | null
           lifetime_earned: number
+          longest_streak: number
           mpesa_number: string | null
           mpesa_verified: boolean
           phone: string
@@ -474,21 +536,26 @@ export type Database = {
           worker_id: string
         }
         Insert: {
+          achievements?: Json
           avatar_url?: string | null
           blocked?: boolean
           blocked_reason?: string | null
           created_at?: string
+          current_streak?: number
           deleted_at?: string | null
           display_name?: string
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
           interview_responses?: Json | null
+          jobs_in_tier?: number
           last_active_at?: string | null
           last_login_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
+          last_streak_date?: string | null
           lifetime_earned?: number
+          longest_streak?: number
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone: string
@@ -511,21 +578,26 @@ export type Database = {
           worker_id: string
         }
         Update: {
+          achievements?: Json
           avatar_url?: string | null
           blocked?: boolean
           blocked_reason?: string | null
           created_at?: string
+          current_streak?: number
           deleted_at?: string | null
           display_name?: string
           display_name_changed_at?: string | null
           full_name?: string
           id?: string
           interview_responses?: Json | null
+          jobs_in_tier?: number
           last_active_at?: string | null
           last_login_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
+          last_streak_date?: string | null
           lifetime_earned?: number
+          longest_streak?: number
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone?: string
@@ -679,8 +751,11 @@ export type Database = {
           emergency_started_at: string | null
           id: number
           maintenance: boolean
+          payment_rotation_mode: string
           redemptions_frozen: boolean
           redemptions_on_hold: boolean
+          referee_bonus_ksh: number
+          referrer_bonus_ksh: number
           registration_open: boolean
           updated_at: string
           upgrades_frozen: boolean
@@ -692,8 +767,11 @@ export type Database = {
           emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
+          payment_rotation_mode?: string
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
+          referee_bonus_ksh?: number
+          referrer_bonus_ksh?: number
           registration_open?: boolean
           updated_at?: string
           upgrades_frozen?: boolean
@@ -705,8 +783,11 @@ export type Database = {
           emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
+          payment_rotation_mode?: string
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
+          referee_bonus_ksh?: number
+          referrer_bonus_ksh?: number
           registration_open?: boolean
           updated_at?: string
           upgrades_frozen?: boolean
@@ -783,6 +864,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      weekly_leaderboard_payouts: {
+        Row: {
+          amount_ksh: number
+          category: string
+          id: string
+          paid_at: string
+          rank: number
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          amount_ksh: number
+          category: string
+          id?: string
+          paid_at?: string
+          rank: number
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          amount_ksh?: number
+          category?: string
+          id?: string
+          paid_at?: string
+          rank?: number
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
       }
     }
     Views: {
