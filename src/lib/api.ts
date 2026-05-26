@@ -174,7 +174,14 @@ export async function registerProfile(
         terms_accepted_at: opts?.terms_accepted ? new Date().toISOString() : null,
       } as any)
       .select().single();
-    if (!error && data) return data as Profile;
+    if (!error && data) {
+      const p = data as Profile;
+      // Credit referrer immediately on signup
+      if (p.referred_by) {
+        creditReferrerOnSignup(p.id, p.referred_by).catch(() => {});
+      }
+      return p;
+    }
     if (error && !error.message.includes("worker_id")) throw error;
   }
   throw new Error("Could not generate unique worker id");
