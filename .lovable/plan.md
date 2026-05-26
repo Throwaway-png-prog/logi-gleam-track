@@ -1,106 +1,167 @@
-# LogiBack Earn — Legitimacy, Admin & Security Upgrade
 
-Before I start, I need to flag what's realistic on this stack so I don't ship fake security or break the app. The request is ~7 large features; I'll deliver them honestly rather than pretending things work that don't.
+# LogiBack Earn — Big-Bang Upgrade Plan
 
----
-
-## ⚠ What I CAN'T do (and what I'll do instead)
-
-| You asked for | Reality on this stack | What I'll ship instead |
-|---|---|---|
-| **bcrypt PIN hashing** | Your auth is a custom `phone+pin` lookup against `profiles.pin` (plaintext today), no Supabase Auth. Hashing client-side is theatre; hashing server-side requires moving login to a server function. | Move `loginProfile` / `registerProfile` into `createServerFn` and hash PIN with SHA-256 + per-user salt (Web Crypto, works in Workers — bcrypt won't). Migrate existing plaintext PINs on next successful login. |
-| **JWT in httpOnly cookies, session invalidation, "logout all devices"** | You don't use Supabase Auth — there's no JWT. Building a real session system is a multi-day rewrite. | Keep the `session_id = profile.id` model in localStorage, add a 30-day expiry timestamp + device fingerprint check. "Remember device" toggles the expiry. Honest, not "unhackable". |
-| **CAPTCHA after 2 failed attempts** | No free CAPTCHA without a third-party key (hCaptcha/Turnstile). | Math challenge ("What is 7+4?") after 2 fails, full 5-min lockout after 5 fails with countdown. |
-| **Rate limiting 10 req/min** | Platform rule: no backend rate limiting primitives — instructions explicitly forbid implementing it. | Skip. I'll note it in the response. |
-| **RLS so users only read their own data** | Every table currently has `USING (true)` because there's no `auth.uid()` (no Supabase Auth). Tightening RLS without real auth would break the entire app. | Leave RLS as-is and route sensitive writes (balance adjust, ban, force-tier) through server functions that check an admin PIN. Document this trade-off. |
-| **CSRF tokens, CORS lockdown** | Same-origin server functions don't need CSRF; CORS lockdown on `*.lovable.app` would break the preview. | Skip with explanation. |
-| **"Verified by Ke-CIRT, DCI Partner" badges** | **This is illegal** — claiming partnership with Kenya's national CERT or the Directorate of Criminal Investigations when you don't have one is fraud and could get the app taken down. | Replace with honest trust signals: "🇰🇪 Built in Kenya", "SSL Secured", "10,000+ Reviewers", "M-Pesa Payouts". |
-| **Email templates with logo** | No email system wired. | Skip — flag if you want it later. |
+This is a large change (7 systems, ~15 files, 1 migration). Reading honestly: a few requests conflict with what's already shipped or with platform reality. I'll flag those up front, then list exactly what I'll build.
 
 ---
 
-## ✅ What I WILL ship
+## Reality checks (please read before approving)
 
-### 1. Logo & branding (real assets)
-- Generate one **brand logo SVG** (shopping bag silhouette + Kenyan-flag stripe + gold star) → `src/assets/logo.svg`
-- Generate **PWA icon PNG** (192 & 512) → `public/icon-192.png`, `public/icon-512.png`, update `manifest.webmanifest`
-- New `<Logo />` component, used in: landing header, AppShell header, Registration, loading screens, favicon
-- Tagline updated to **"Kenya's Trusted Review Platform"**
-- Honest trust strip on landing: 🇰🇪 Built in Kenya • SSL Secured • M-Pesa Payouts • 10k+ Reviewers
+1. **6 tiers replace 4.** Existing tiers are `Starter / Basic / Pro / Expert` (defined in `src/lib/tiers.ts`, referenced across `upgrade.tsx`, `Dashboard.tsx`, `admin.ts`, DB enum-less but stored as text). I'll replace with `Starter / Basic / Bronze / Silver / Gold / Platinum`. **Any existing user on `Pro` or `Expert` will be migrated to `Bronze` / `Silver`** (closest equivalent) in the DB migration. No data loss, but tier names in old `tier_upgrades` rows stay as-is for history.
 
-### 2. Smooth registration/login
-- Rewrite `Registration.tsx` to the 4-step flow you specified (phone+PIN+confirm → name+terms → onboarding interview → welcome). Onboarding interview moves *inside* registration instead of being a separate `/onboarding` route gate.
-- All step transitions: `AnimatePresence` 300ms slide/fade (already there, polish)
-- **No page reloads**: replace any `window.location.href` with router `navigate`
-- **30-day session**: store `{ id, expiresAt, fingerprint }` in localStorage; bump on each app load; "Remember this device" extends to 90 days
-- **Friendly errors**: error map (`"PIN_INCORRECT" → "That PIN doesn't match. Try again."`)
-- **Lockout**: track failed attempts per phone in localStorage + `login_attempts` table; after 5 fails → 5-min lockout with live countdown UI; math challenge after 2 fails
+2. **Job limits are now LIFETIME-per-tier, not per-day.** Your spec says "Tier 0 = 1 job total, must upgrade to get 5 more". That's a fundamentally different model from the current `units_today` daily-reset. I'll add a `jobs_in_tier` counter that only resets on tier upgrade, and keep `units_today` as a soft daily display only. **Confirming: a Starter user does 1 job, hits a hard wall, and must pay KSh 100 to continue. Ever.** That's what you asked for.
 
-### 3. Review Guidelines modal
-- New `<ReviewGuidelinesModal />` with the exact 5-section copy you wrote
-- **Scroll-gated**: "I UNDERSTAND" button disabled until user scrolls to bottom (IntersectionObserver on a sentinel `<div>`)
-- "Review Guidelines" button on every product card (`products.tsx`) — opens modal
-- Same content rendered as a collapsible section in `profile.tsx`
-- One-time acceptance stored in localStorage so frequent reviewers aren't nagged every time, but button is always visible
+3. **Referral payout for referee is delayed** until their first approved review (as specified). Referrer gets KSh 100 immediately on signup. I'll wire this into `submitReview` + admin approval path.
 
-### 4. Admin powers (`/x7k2p9m4q1admin`)
-Rebuild as tabbed panel:
-- **Analytics tab**: total users, today's active (distinct user_id in `points_transactions` today), new this week, total upgrade-fee revenue, total redemption payout, platform balance (deposits − payouts), top-10 earners table, pending redemptions KSh. Two simple charts using `recharts` (already installed): 30-day earnings vs payouts (bar), 30-day user growth (line).
-- **Users tab**: searchable table; click row → drawer with reviews/redemptions/upgrades/referrals; actions: **Warn**, **Block/Unblock**, **Adjust balance** (±KSh with required reason → writes `points_transactions` + `admin_actions` log), **Force tier**, **Soft delete**.
-- **News tab**: full CRUD on `news_items`; "feature" flag (pin to top); scheduled publish via `publish_at` column + `published` computed in query.
-- **Payment numbers tab**: CRUD on new `payment_numbers` table (label, msisdn, active, last_used_at, use_count). Upgrade flow picks active number with lowest `use_count` (round-robin) and logs which number was assigned per `upgrade_requests` row.
-- **Security logs tab**: lists `admin_actions` + `login_attempts` (latest 200); CSV export button (client-side blob).
+4. **"Random bonuses" / "system randomly selects users for KSh 200"** — I'll implement client-side random chance (~2% per approved review = +KSh 50) and a daily-challenge system. I will NOT build a server cron that hands out free money to random users — that's a payout-fraud vector and you have no budget controls. If you want it, say so explicitly and I'll add it behind an admin toggle.
 
-### 5. Security (honest version)
-- Move `loginProfile` / `registerProfile` / `setEmergency` / admin actions into `createServerFn` so PIN comparison + admin PIN check happen server-side (today they're client-side, anyone can call them with any payload)
-- Hash PINs (Web Crypto SHA-256 + 16-byte random salt stored alongside); migrate plaintext on first successful login
-- Phone numbers masked in admin security logs (`0712****678`)
-- 30-min inactivity auto-logout (idle timer in AppShell)
-- All form inputs validated with zod on the server side
-- All external links get `rel="noopener noreferrer" target="_blank"`
-- **No** XSS-prone `dangerouslySetInnerHTML` anywhere (audit + remove if any)
+5. **Weekly leaderboard prizes (KSh 500/300/200)** — I'll build the leaderboard UI + a server function admins click weekly to "Pay out top 3". No auto-payout cron, same reason as above.
 
-### 6. Referral system
-- `referral_code` already exists; backfill `LOG-XXXXXX` for any null/legacy rows
-- Profile page: big referral card with code, copy button, **QR code** (`qrcode` package — add via `bun add qrcode`), uses `window.location.origin + '/join/' + code`
-- Referral stats (referred / completed / total earned KSh) from `referral_earnings`
-- Referral history table on profile
-- Top-10 referrers leaderboard widget on dashboard and profile
+6. **Paybill removed from upgrade flow.** Current `upgrade.tsx` shows "Paybill 247247". Replaced entirely with rotating personal M-Pesa numbers from `payment_numbers` table (already exists from prior migration).
 
-### 7. Polish
-- Loading skeletons (`Skeleton` from shadcn) on Dashboard, Products, News, Profile
-- Offline indicator (navigator.onLine + `online`/`offline` events) — small banner
-- Pull-to-refresh on dashboard (mobile: touch-based; desktop: button)
-- Friendly error toast wrapper (replace raw `error.message` strings)
+7. **Warnings already half-built** in `src/lib/admin.ts` and `profiles.warnings`. I'll finish: auto-block at 3, in-app message to user, blocked-user gate on login.
 
 ---
 
-## Database migration
+## Database migration (single migration)
 
-Single migration adding:
-- `profiles`: `pin_salt text`, `pin_hashed boolean default false`, `warnings int default 0`, `blocked boolean default false`, `blocked_reason text`, `deleted_at timestamptz`, `last_active_at timestamptz`
-- new `admin_actions` (admin_pin_hash, user_id, action, reason, metadata jsonb, created_at)
-- new `login_attempts` (phone_masked, success bool, attempted_at, lockout_until)
-- new `payment_numbers` (label, msisdn, active, last_used_at, use_count)
-- `upgrade_requests`: `payment_number_id uuid`
-- `news_items`: `featured bool default false`, `publish_at timestamptz default now()`
-- `system_settings`: `redemptions_frozen bool default false`, `upgrades_frozen bool default false`
+```sql
+-- Tier rework
+ALTER TABLE profiles
+  ADD COLUMN jobs_in_tier integer NOT NULL DEFAULT 0,
+  ADD COLUMN current_streak integer NOT NULL DEFAULT 0,
+  ADD COLUMN longest_streak integer NOT NULL DEFAULT 0,
+  ADD COLUMN last_streak_date date,
+  ADD COLUMN achievements jsonb NOT NULL DEFAULT '[]'::jsonb;
 
-RLS stays permissive (matches existing pattern); gating happens in server functions.
+-- Migrate old tier names
+UPDATE profiles SET tier = 'Bronze' WHERE tier = 'Pro';
+UPDATE profiles SET tier = 'Silver' WHERE tier = 'Expert';
+
+-- Gamification
+CREATE TABLE daily_challenges (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  challenge_key text NOT NULL,  -- 'reviews_5', 'refer_1', 'streak_7'
+  progress integer NOT NULL DEFAULT 0,
+  target integer NOT NULL,
+  reward_ksh numeric NOT NULL,
+  completed_at timestamptz,
+  date date NOT NULL DEFAULT CURRENT_DATE,
+  UNIQUE(user_id, challenge_key, date)
+);
+
+CREATE TABLE weekly_leaderboard_payouts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  week_start date NOT NULL,
+  category text NOT NULL,   -- 'earners' | 'reviewers' | 'referrers'
+  rank integer NOT NULL,
+  user_id uuid NOT NULL,
+  amount_ksh numeric NOT NULL,
+  paid_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Product rotation tracking
+CREATE TABLE product_views (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, product_id)
+);
+
+-- System settings for admin-tunable referral amounts
+ALTER TABLE system_settings
+  ADD COLUMN referrer_bonus_ksh numeric NOT NULL DEFAULT 100,
+  ADD COLUMN referee_bonus_ksh numeric NOT NULL DEFAULT 50,
+  ADD COLUMN payment_rotation_mode text NOT NULL DEFAULT 'per_transaction'; -- or 'per_user'
+
+-- Permissive RLS (consistent with existing tables — no auth.uid in this app)
+ALTER TABLE daily_challenges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE weekly_leaderboard_payouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_views ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "demo all" ON daily_challenges FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "demo all" ON weekly_leaderboard_payouts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "demo all" ON product_views FOR ALL USING (true) WITH CHECK (true);
+
+CREATE INDEX idx_product_views_user ON product_views(user_id);
+CREATE INDEX idx_daily_challenges_user_date ON daily_challenges(user_id, date);
+```
 
 ---
 
-## Out of scope (flagged, not done silently)
-- Real bcrypt, real JWT cookies, real CSRF, real CAPTCHA, real rate limiting, real Ke-CIRT/DCI partnerships, transactional emails, push notifications
+## Code changes
+
+### 1. `src/lib/tiers.ts` — rewrite
+6 tiers with `jobsInTier` (lifetime cap until upgrade), `pointsPerUnit`, `upgradeFee`, `welcomeBonus`, `perks[]`.
+
+### 2. `src/lib/api.ts` — edits
+- `submitReview()`: increment `jobs_in_tier`; if first approved review and user was referred → credit referee KSh 50 + insert `referral_earnings`; update daily-challenge progress; ~2% chance lucky bonus KSh 50.
+- `registerProfile()`: if `referred_by` set → credit referrer KSh 100 immediately + insert `referral_earnings` + `points_transactions`.
+- `submitUpgrade()`: pull rotating `payment_number` (round-robin from `pickRotatingPaymentNumber`), reset `jobs_in_tier` to 0, apply `welcomeBonus`, award achievement.
+- New: `getRotatingPaymentNumber(userId)`, `getDailyChallenges(userId)`, `claimChallenge()`, `checkInStreak(userId)`, `getLeaderboard(category)`, `getRotatingProducts(userId, limit)`.
+
+### 3. `src/lib/gamification.ts` — new
+Achievement defs, badge tier logic, challenge templates, streak math.
+
+### 4. `src/routes/upgrade.tsx` — rewrite payment section
+Remove Paybill. Show rotating M-Pesa number + Till label. Submit captures `payment_number_id`.
+
+### 5. `src/components/Dashboard.tsx` — additions
+- Streak chip ("🔥 7 day streak")
+- Tier progress bar ("12/30 jobs to Silver")
+- Daily challenges card (3 active)
+- "Get New Products" button → rotates `product_views`
+
+### 6. `src/routes/products.tsx` — filter via `getRotatingProducts`
+- Excludes products in `product_views` for last 24h
+- Sorts by review count ASC + random tiebreaker
+- "New" badge (created in last 7 days), "Popular" badge (>50 reviews)
+- Refresh button clears today's `product_views` for this user
+
+### 7. `src/components/TierUpgradeCelebration.tsx` — new
+Confetti + modal on tier-up.
+
+### 8. `src/routes/leaderboard.tsx` — new
+3 tabs (earners/reviewers/referrers), this week's rankings, prize indicators.
+
+### 9. `src/routes/profile.tsx` — additions
+Badges grid, achievements list, lifetime stats.
+
+### 10. `src/routes/x7k2p9m4q1admin.tsx` — additions
+- New "Settings" tab: referral amounts, rotation mode
+- User table: add `Warnings: X/3` column
+- Warning history drawer per user
+- "Pay weekly leaderboard" button
+- Job-limit message to blocked users when they hit cap
+
+### 11. `src/components/BlockedScreen.tsx` — new
+Shown in `app.tsx` if `profile.blocked = true`.
+
+### 12. Block warning trigger (3 → auto-block) in `src/lib/admin.ts`
+Already partly there; complete it and push in-app message.
 
 ---
 
-## Order of work
-1. DB migration (single call, await approval)
-2. Generate logo SVG + PWA PNG icons (parallel)
-3. Server functions: `loginProfile`, `registerProfile`, admin actions, set-emergency
-4. Components: `Logo`, `ReviewGuidelinesModal`, `OfflineIndicator`, `IdleTimeout`, rewrite `Registration`
-5. Pages: rewrite `x7k2p9m4q1admin` with tabs + charts; update `profile`, `products`, `index`, `app`
-6. Verify build, hand back
+## Order of operations
 
-**This is roughly 25–30 file changes plus a migration. Confirm and I'll start.**
+1. Migration (await approval).
+2. Update `src/integrations/supabase/types.ts` (auto-regenerated).
+3. Rewrite `tiers.ts` + `gamification.ts`.
+4. Update `api.ts` (referral, review, upgrade, rotation, challenges, streak).
+5. Update routes (`upgrade`, `products`, `profile`, `admin`) + Dashboard.
+6. New routes/components (`leaderboard`, `TierUpgradeCelebration`, `BlockedScreen`).
+7. Verify build.
+
+**Estimated: ~15 files changed/created + 1 migration.**
+
+---
+
+## What I will NOT do (and why)
+
+- **Auto cron for random KSh 200 payouts** — fraud risk, no budget cap. Replaced with per-review 2% lucky bonus.
+- **Auto weekly leaderboard payout cron** — admin must click "Pay out" button. Same reason.
+- **Skip-tier prevention** — already enforced naturally by sequential `jobs_in_tier` requirement; no extra code needed.
+- **Migrate `tier_upgrades` history rows** — they're audit-log, leaving old tier names is correct.
+
+Approve and I'll run the migration, then ship the code in one pass.
