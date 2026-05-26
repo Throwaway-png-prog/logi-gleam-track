@@ -676,37 +676,56 @@ export async function findProfileByReferralCode(code: string): Promise<Profile |
   return (data as Profile) ?? null;
 }
 
-const REFERRER_BONUS = 100;
-const REFERRED_BONUS = 50;
+async function getReferralBonuses(): Promise<{ referrer: number; referee: number }> {
+  const { data } = await supabase.from("system_settings")
+    .select("referrer_bonus_ksh, referee_bonus_ksh" as any).eq("id", 1).maybeSingle();
+  return {
+    referrer: Number((data as any)?.referrer_bonus_ksh ?? 100),
+    referee: Number((data as any)?.referee_bonus_ksh ?? 50),
+  };
+}
 
-async function creditFirstJobReferral(referredId: string, referrerId: string): Promise<void> {
-  // Pay referrer
+/** Credit referrer immediately when a new user signs up using their code. */
+async function creditReferrerOnSignup(referredId: string, referrerId: string): Promise<void> {
+  const { referrer: amt } = await getReferralBonuses();
   const { data: referrer } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
-  if (referrer) {
-    const r = referrer as Profile;
-    await supabase.from("profiles").update({
-      points: r.points + REFERRER_BONUS,
-      total_referral_earnings: Number(r.total_referral_earnings ?? 0) + REFERRER_BONUS,
-    } as any).eq("id", r.id);
-    await supabase.from("points_transactions" as any).insert({
-      user_id: r.id, delta: REFERRER_BONUS, reason: "Referral bonus — friend's first job", ref_id: referredId,
-    } as any);
-    await supabase.from("referral_earnings" as any).insert({
-      referrer_id: referrerId, referred_id: referredId, amount_ksh: REFERRER_BONUS, kind: "referrer_first_job",
-    } as any);
-  }
-  // Pay referred user welcome bonus
+  if (!referrer) return;
+  const r = referrer as Profile;
+  await supabase.from("profiles").update({
+    points: r.points + amt,
+    total_referral_earnings: Number(r.total_referral_earnings ?? 0) + amt,
+  } as any).eq("id", r.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: r.id, delta: amt, reason: `Referral bonus — ${r.display_name || "friend"} joined`, ref_id: referredId,
+  } as any);
+  await supabase.from("referral_earnings" as any).insert({
+    referrer_id: referrerId, referred_id: referredId, amount_ksh: amt, kind: "referrer_signup",
+  } as any);
+  await supabase.from("messages" as any).insert({
+    title: "🎉 Referral bonus!", body: `A friend joined using your link. KSh ${amt} added to your balance.`,
+    audience: "user", audience_value: referrerId,
+  } as any);
+  // Daily challenge for referrer
+  await import("./gamification").then((m) => m.bumpChallenge(referrerId, "refer_1", 1)).catch(() => {});
+}
+
+/** Credit referee's welcome bonus when they complete their first approved review. */
+async function creditRefereeOnFirstReview(referredId: string, referrerId: string): Promise<void> {
+  const { referee: amt } = await getReferralBonuses();
   const { data: referred } = await supabase.from("profiles").select("*").eq("id", referredId).single();
-  if (referred) {
-    const r = referred as Profile;
-    await supabase.from("profiles").update({ points: r.points + REFERRED_BONUS } as any).eq("id", r.id);
-    await supabase.from("points_transactions" as any).insert({
-      user_id: r.id, delta: REFERRED_BONUS, reason: "Welcome bonus (referred sign-up)", ref_id: referrerId,
-    } as any);
-    await supabase.from("referral_earnings" as any).insert({
-      referrer_id: referrerId, referred_id: referredId, amount_ksh: REFERRED_BONUS, kind: "referred_welcome",
-    } as any);
-  }
+  if (!referred) return;
+  const r = referred as Profile;
+  await supabase.from("profiles").update({ points: r.points + amt } as any).eq("id", r.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: r.id, delta: amt, reason: "Welcome bonus — first approved review", ref_id: referrerId,
+  } as any);
+  await supabase.from("referral_earnings" as any).insert({
+    referrer_id: referrerId, referred_id: referredId, amount_ksh: amt, kind: "referred_welcome",
+  } as any);
+  await supabase.from("messages" as any).insert({
+    title: "🎁 Welcome bonus!", body: `Your first review is approved. KSh ${amt} welcome bonus added.`,
+    audience: "user", audience_value: referredId,
+  } as any);
 }
 
 export interface ReferralRow {
