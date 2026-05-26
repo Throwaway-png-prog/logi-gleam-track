@@ -37,6 +37,15 @@ export interface Profile {
   total_referral_earnings?: number;
   lifetime_earned?: number;
   terms_accepted_at?: string | null;
+  // New fields (tier progression + gamification)
+  jobs_in_tier?: number;
+  current_streak?: number;
+  longest_streak?: number;
+  last_streak_date?: string | null;
+  achievements?: string[];
+  blocked?: boolean;
+  blocked_reason?: string | null;
+  warnings?: number;
 }
 
 export interface EmergencyState {
