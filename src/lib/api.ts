@@ -437,13 +437,30 @@ export async function listPendingUpgrades(): Promise<(UpgradeRequest & { profile
 export async function approveUpgrade(req: UpgradeRequest) {
   await supabase.from("upgrade_requests").update({ status: "approved" }).eq("id", req.id);
   const { data: prof } = await supabase.from("profiles").select("*").eq("id", req.user_id).single();
-  if (prof) {
-    const p = prof as Profile;
-    await supabase.from("profiles").update({ tier: req.requested_tier, points: p.points + Number(req.amount_paid) }).eq("id", p.id);
+  if (!prof) return;
+  const p = prof as Profile;
+  const newTier = getTier(req.requested_tier);
+  const welcome = newTier.welcomeBonus ?? 0;
+  await supabase.from("profiles").update({
+    tier: req.requested_tier,
+    jobs_in_tier: 0,
+    points: p.points + welcome,
+    lifetime_earned: Number(p.lifetime_earned ?? 0) + welcome,
+  } as any).eq("id", p.id);
+  await supabase.from("tier_upgrades" as any).insert({
+    user_id: p.id, from_tier: p.tier, to_tier: req.requested_tier,
+    fee_ksh: Number(req.amount_paid), transaction_code: req.transaction_code,
+  } as any);
+  if (welcome > 0) {
     await supabase.from("points_transactions" as any).insert({
-      user_id: p.id, delta: Number(req.amount_paid), reason: `Tier upgrade · ${req.requested_tier}`, ref_id: req.id,
+      user_id: p.id, delta: welcome, reason: `${req.requested_tier} welcome bonus`, ref_id: req.id,
     } as any);
   }
+  await supabase.from("messages" as any).insert({
+    title: `🎉 Welcome to ${req.requested_tier}!`,
+    body: `Your tier upgrade is approved. ${newTier.perks.join(" · ")}`,
+    audience: "user", audience_value: p.id,
+  } as any);
 }
 export async function rejectUpgrade(req: UpgradeRequest) {
   await supabase.from("upgrade_requests").update({ status: "rejected" }).eq("id", req.id);
