@@ -37,6 +37,15 @@ export interface Profile {
   total_referral_earnings?: number;
   lifetime_earned?: number;
   terms_accepted_at?: string | null;
+  // New fields (tier progression + gamification)
+  jobs_in_tier?: number;
+  current_streak?: number;
+  longest_streak?: number;
+  last_streak_date?: string | null;
+  achievements?: string[];
+  blocked?: boolean;
+  blocked_reason?: string | null;
+  warnings?: number;
 }
 
 export interface EmergencyState {
@@ -110,6 +119,7 @@ export interface UpgradeRequest {
   transaction_code: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+  payment_number_id?: string | null;
 }
 
 export interface RedemptionRequest {
@@ -164,7 +174,14 @@ export async function registerProfile(
         terms_accepted_at: opts?.terms_accepted ? new Date().toISOString() : null,
       } as any)
       .select().single();
-    if (!error && data) return data as Profile;
+    if (!error && data) {
+      const p = data as Profile;
+      // Credit referrer immediately on signup
+      if (p.referred_by) {
+        creditReferrerOnSignup(p.id, p.referred_by).catch(() => {});
+      }
+      return p;
+    }
     if (error && !error.message.includes("worker_id")) throw error;
   }
   throw new Error("Could not generate unique worker id");
@@ -207,9 +224,9 @@ export async function getProduct(id: string): Promise<Product | null> {
 }
 
 // --- Review submissions ---
-// Per-job payout is tier-based, NOT product-based. The product's points_reward
-// is a display fallback only. We read the user's current tier rate from TIERS.
-import { getTier } from "./tiers";
+// Per-job payout is tier-based. Gold/Platinum multipliers applied at approval.
+import { getTier, tierMultiplier } from "./tiers";
+import { bumpChallenge, evaluateAchievements } from "./gamification";
 
 export async function submitReview(args: {
   user_id: string;
@@ -218,9 +235,13 @@ export async function submitReview(args: {
   rating: number;
   screenshot_url: string | null;
 }): Promise<ReviewSubmission> {
-  // Look up user tier to compute payout
-  const { data: prof } = await supabase.from("profiles").select("tier").eq("id", args.user_id).single();
+  const { data: prof } = await supabase.from("profiles").select("tier, jobs_in_tier").eq("id", args.user_id).single();
   const tier = getTier((prof as any)?.tier ?? "Starter");
+  // Enforce per-tier lifetime job limit
+  const done = Number((prof as any)?.jobs_in_tier ?? 0);
+  if (done >= tier.jobsInTier) {
+    throw new Error(`You've completed all ${tier.jobsInTier} ${tier.name} jobs. Upgrade your tier to unlock more.`);
+  }
   const payout = tier.pointsPerUnit;
 
   const { data, error } = await supabase.from("review_submissions" as any).insert({
@@ -234,11 +255,19 @@ export async function submitReview(args: {
   } as any).select().single();
   if (error) throw error;
 
-  // Bump units_today (counts toward tier daily limit)
-  const { data: full } = await supabase.from("profiles").select("units_today").eq("id", args.user_id).single();
-  if (full) {
-    await supabase.from("profiles").update({ units_today: ((full as any).units_today ?? 0) + 1 } as any).eq("id", args.user_id);
-  }
+  // Bump counters
+  await supabase.from("profiles").update({
+    units_today: ((prof as any)?.units_today ?? 0) + 1,
+    jobs_in_tier: done + 1,
+  } as any).eq("id", args.user_id);
+
+  // Track this product as seen for rotation
+  await supabase.from("product_views" as any).upsert({
+    user_id: args.user_id, product_id: args.product.id,
+  } as any, { onConflict: "user_id,product_id" });
+
+  // Daily challenge: reviews_5
+  bumpChallenge(args.user_id, "reviews_5", 1).catch(() => {});
 
   return data as unknown as ReviewSubmission;
 }
@@ -281,23 +310,60 @@ export async function listPendingReviews(): Promise<(ReviewSubmission & { produc
 export async function approveReview(req: ReviewSubmission): Promise<void> {
   await supabase.from("review_submissions" as any).update({ status: "approved", updated_at: new Date().toISOString() } as any).eq("id", req.id);
   const { data: prof } = await supabase.from("profiles").select("*").eq("id", req.user_id).single();
-  if (prof) {
-    const p = prof as Profile;
-    const wasFirst = (p.reviews_approved ?? 0) === 0;
-    await supabase.from("profiles").update({
-      points: p.points + req.points_reward,
-      reviews_approved: (p.reviews_approved ?? 0) + 1,
-      lifetime_earned: Number(p.lifetime_earned ?? 0) + req.points_reward,
-    } as any).eq("id", p.id);
-    await supabase.from("points_transactions" as any).insert({
-      user_id: p.id, delta: req.points_reward, reason: "Review approved", ref_id: req.id,
-    } as any);
+  if (!prof) return;
+  const p = prof as Profile;
+  const wasFirst = (p.reviews_approved ?? 0) === 0;
+  const mult = tierMultiplier(p.tier);
+  const basePayout = req.points_reward;
+  const totalPayout = Math.round(basePayout * mult);
+  const bonus = totalPayout - basePayout;
+  // 2% chance lucky bonus +KSh 50
+  const lucky = Math.random() < 0.02 ? 50 : 0;
+  const finalPayout = totalPayout + lucky;
 
-    // First-job referral payout
-    if (wasFirst && p.referred_by) {
-      await creditFirstJobReferral(p.id, p.referred_by);
-    }
+  await supabase.from("profiles").update({
+    points: p.points + finalPayout,
+    reviews_approved: (p.reviews_approved ?? 0) + 1,
+    lifetime_earned: Number(p.lifetime_earned ?? 0) + finalPayout,
+  } as any).eq("id", p.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: p.id, delta: basePayout, reason: "Review approved", ref_id: req.id,
+  } as any);
+  if (bonus > 0) {
+    await supabase.from("points_transactions" as any).insert({
+      user_id: p.id, delta: bonus, reason: `${p.tier} tier bonus (+${Math.round((mult - 1) * 100)}%)`, ref_id: req.id,
+    } as any);
   }
+  if (lucky > 0) {
+    await supabase.from("points_transactions" as any).insert({
+      user_id: p.id, delta: lucky, reason: "🍀 Lucky review bonus!", ref_id: req.id,
+    } as any);
+    await supabase.from("messages" as any).insert({
+      title: "🍀 Lucky bonus!", body: `You won an extra KSh ${lucky} on your latest review.`,
+      audience: "user", audience_value: p.id,
+    } as any);
+  }
+
+  // First-approved-review referee bonus
+  if (wasFirst && p.referred_by) {
+    await creditRefereeOnFirstReview(p.id, p.referred_by);
+  }
+
+  // Re-evaluate achievements
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const { count: reviewsToday } = await supabase.from("review_submissions" as any)
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", p.id).eq("status", "approved").gte("created_at", today.toISOString());
+  const { count: refCount } = await supabase.from("profiles")
+    .select("*", { count: "exact", head: true }).eq("referred_by", p.id);
+  await evaluateAchievements(p.id, p.achievements ?? [], {
+    reviewsApproved: (p.reviews_approved ?? 0) + 1,
+    reviewsToday: reviewsToday ?? 0,
+    currentStreak: p.current_streak ?? 0,
+    longestStreak: p.longest_streak ?? 0,
+    successfulReferrals: refCount ?? 0,
+    currentTier: p.tier,
+  });
 }
 
 export async function rejectReview(req: ReviewSubmission, reason: string): Promise<void> {
@@ -338,10 +404,14 @@ export async function uploadScreenshot(userId: string, file: File): Promise<stri
 }
 
 // --- Upgrades ---
-export async function submitUpgrade(userId: string, requested_tier: string, amount_paid: number, transaction_code: string) {
+export async function submitUpgrade(
+  userId: string, requested_tier: string, amount_paid: number, transaction_code: string,
+  payment_number_id?: string | null,
+) {
   const { error } = await supabase.from("upgrade_requests").insert({
     user_id: userId, requested_tier, amount_paid, transaction_code, status: "pending",
-  });
+    payment_number_id: payment_number_id ?? null,
+  } as any);
   if (error) throw error;
 }
 export async function myPendingUpgrade(userId: string): Promise<UpgradeRequest | null> {
@@ -367,13 +437,30 @@ export async function listPendingUpgrades(): Promise<(UpgradeRequest & { profile
 export async function approveUpgrade(req: UpgradeRequest) {
   await supabase.from("upgrade_requests").update({ status: "approved" }).eq("id", req.id);
   const { data: prof } = await supabase.from("profiles").select("*").eq("id", req.user_id).single();
-  if (prof) {
-    const p = prof as Profile;
-    await supabase.from("profiles").update({ tier: req.requested_tier, points: p.points + Number(req.amount_paid) }).eq("id", p.id);
+  if (!prof) return;
+  const p = prof as Profile;
+  const newTier = getTier(req.requested_tier);
+  const welcome = newTier.welcomeBonus ?? 0;
+  await supabase.from("profiles").update({
+    tier: req.requested_tier,
+    jobs_in_tier: 0,
+    points: p.points + welcome,
+    lifetime_earned: Number(p.lifetime_earned ?? 0) + welcome,
+  } as any).eq("id", p.id);
+  await supabase.from("tier_upgrades" as any).insert({
+    user_id: p.id, from_tier: p.tier, to_tier: req.requested_tier,
+    fee_ksh: Number(req.amount_paid), transaction_code: req.transaction_code,
+  } as any);
+  if (welcome > 0) {
     await supabase.from("points_transactions" as any).insert({
-      user_id: p.id, delta: Number(req.amount_paid), reason: `Tier upgrade · ${req.requested_tier}`, ref_id: req.id,
+      user_id: p.id, delta: welcome, reason: `${req.requested_tier} welcome bonus`, ref_id: req.id,
     } as any);
   }
+  await supabase.from("messages" as any).insert({
+    title: `🎉 Welcome to ${req.requested_tier}!`,
+    body: `Your tier upgrade is approved. ${newTier.perks.join(" · ")}`,
+    audience: "user", audience_value: p.id,
+  } as any);
 }
 export async function rejectUpgrade(req: UpgradeRequest) {
   await supabase.from("upgrade_requests").update({ status: "rejected" }).eq("id", req.id);
@@ -606,37 +693,56 @@ export async function findProfileByReferralCode(code: string): Promise<Profile |
   return (data as Profile) ?? null;
 }
 
-const REFERRER_BONUS = 100;
-const REFERRED_BONUS = 50;
+async function getReferralBonuses(): Promise<{ referrer: number; referee: number }> {
+  const { data } = await supabase.from("system_settings")
+    .select("referrer_bonus_ksh, referee_bonus_ksh" as any).eq("id", 1).maybeSingle();
+  return {
+    referrer: Number((data as any)?.referrer_bonus_ksh ?? 100),
+    referee: Number((data as any)?.referee_bonus_ksh ?? 50),
+  };
+}
 
-async function creditFirstJobReferral(referredId: string, referrerId: string): Promise<void> {
-  // Pay referrer
+/** Credit referrer immediately when a new user signs up using their code. */
+async function creditReferrerOnSignup(referredId: string, referrerId: string): Promise<void> {
+  const { referrer: amt } = await getReferralBonuses();
   const { data: referrer } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
-  if (referrer) {
-    const r = referrer as Profile;
-    await supabase.from("profiles").update({
-      points: r.points + REFERRER_BONUS,
-      total_referral_earnings: Number(r.total_referral_earnings ?? 0) + REFERRER_BONUS,
-    } as any).eq("id", r.id);
-    await supabase.from("points_transactions" as any).insert({
-      user_id: r.id, delta: REFERRER_BONUS, reason: "Referral bonus — friend's first job", ref_id: referredId,
-    } as any);
-    await supabase.from("referral_earnings" as any).insert({
-      referrer_id: referrerId, referred_id: referredId, amount_ksh: REFERRER_BONUS, kind: "referrer_first_job",
-    } as any);
-  }
-  // Pay referred user welcome bonus
+  if (!referrer) return;
+  const r = referrer as Profile;
+  await supabase.from("profiles").update({
+    points: r.points + amt,
+    total_referral_earnings: Number(r.total_referral_earnings ?? 0) + amt,
+  } as any).eq("id", r.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: r.id, delta: amt, reason: `Referral bonus — ${r.display_name || "friend"} joined`, ref_id: referredId,
+  } as any);
+  await supabase.from("referral_earnings" as any).insert({
+    referrer_id: referrerId, referred_id: referredId, amount_ksh: amt, kind: "referrer_signup",
+  } as any);
+  await supabase.from("messages" as any).insert({
+    title: "🎉 Referral bonus!", body: `A friend joined using your link. KSh ${amt} added to your balance.`,
+    audience: "user", audience_value: referrerId,
+  } as any);
+  // Daily challenge for referrer
+  await import("./gamification").then((m) => m.bumpChallenge(referrerId, "refer_1", 1)).catch(() => {});
+}
+
+/** Credit referee's welcome bonus when they complete their first approved review. */
+async function creditRefereeOnFirstReview(referredId: string, referrerId: string): Promise<void> {
+  const { referee: amt } = await getReferralBonuses();
   const { data: referred } = await supabase.from("profiles").select("*").eq("id", referredId).single();
-  if (referred) {
-    const r = referred as Profile;
-    await supabase.from("profiles").update({ points: r.points + REFERRED_BONUS } as any).eq("id", r.id);
-    await supabase.from("points_transactions" as any).insert({
-      user_id: r.id, delta: REFERRED_BONUS, reason: "Welcome bonus (referred sign-up)", ref_id: referrerId,
-    } as any);
-    await supabase.from("referral_earnings" as any).insert({
-      referrer_id: referrerId, referred_id: referredId, amount_ksh: REFERRED_BONUS, kind: "referred_welcome",
-    } as any);
-  }
+  if (!referred) return;
+  const r = referred as Profile;
+  await supabase.from("profiles").update({ points: r.points + amt } as any).eq("id", r.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: r.id, delta: amt, reason: "Welcome bonus — first approved review", ref_id: referrerId,
+  } as any);
+  await supabase.from("referral_earnings" as any).insert({
+    referrer_id: referrerId, referred_id: referredId, amount_ksh: amt, kind: "referred_welcome",
+  } as any);
+  await supabase.from("messages" as any).insert({
+    title: "🎁 Welcome bonus!", body: `Your first review is approved. KSh ${amt} welcome bonus added.`,
+    audience: "user", audience_value: referredId,
+  } as any);
 }
 
 export interface ReferralRow {
