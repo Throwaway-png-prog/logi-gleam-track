@@ -235,9 +235,24 @@ export async function submitReview(args: {
   rating: number;
   screenshot_url: string | null;
 }): Promise<ReviewSubmission> {
-  // Look up user tier to compute payout
-  const { data: prof } = await supabase.from("profiles").select("tier").eq("id", args.user_id).single();
+// Per-job payout is tier-based. Multiplier perks (Gold/Platinum) apply at approval.
+import { getTier, tierMultiplier } from "./tiers";
+import { bumpChallenge, evaluateAchievements } from "./gamification";
+
+export async function submitReview(args: {
+  user_id: string;
+  product: Product;
+  review_text: string;
+  rating: number;
+  screenshot_url: string | null;
+}): Promise<ReviewSubmission> {
+  const { data: prof } = await supabase.from("profiles").select("tier, jobs_in_tier").eq("id", args.user_id).single();
   const tier = getTier((prof as any)?.tier ?? "Starter");
+  // Enforce per-tier lifetime job limit
+  const done = Number((prof as any)?.jobs_in_tier ?? 0);
+  if (done >= tier.jobsInTier) {
+    throw new Error(`You've completed all ${tier.jobsInTier} ${tier.name} jobs. Upgrade your tier to unlock more.`);
+  }
   const payout = tier.pointsPerUnit;
 
   const { data, error } = await supabase.from("review_submissions" as any).insert({
@@ -251,11 +266,19 @@ export async function submitReview(args: {
   } as any).select().single();
   if (error) throw error;
 
-  // Bump units_today (counts toward tier daily limit)
-  const { data: full } = await supabase.from("profiles").select("units_today").eq("id", args.user_id).single();
-  if (full) {
-    await supabase.from("profiles").update({ units_today: ((full as any).units_today ?? 0) + 1 } as any).eq("id", args.user_id);
-  }
+  // Bump counters
+  await supabase.from("profiles").update({
+    units_today: ((prof as any)?.units_today ?? 0) + 1,
+    jobs_in_tier: done + 1,
+  } as any).eq("id", args.user_id);
+
+  // Track this product as seen for rotation
+  await supabase.from("product_views" as any).upsert({
+    user_id: args.user_id, product_id: args.product.id,
+  } as any, { onConflict: "user_id,product_id" });
+
+  // Daily challenge: reviews_5
+  bumpChallenge(args.user_id, "reviews_5", 1).catch(() => {});
 
   return data as unknown as ReviewSubmission;
 }
