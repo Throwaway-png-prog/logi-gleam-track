@@ -224,18 +224,7 @@ export async function getProduct(id: string): Promise<Product | null> {
 }
 
 // --- Review submissions ---
-// Per-job payout is tier-based, NOT product-based. The product's points_reward
-// is a display fallback only. We read the user's current tier rate from TIERS.
-import { getTier } from "./tiers";
-
-export async function submitReview(args: {
-  user_id: string;
-  product: Product;
-  review_text: string;
-  rating: number;
-  screenshot_url: string | null;
-}): Promise<ReviewSubmission> {
-// Per-job payout is tier-based. Multiplier perks (Gold/Platinum) apply at approval.
+// Per-job payout is tier-based. Gold/Platinum multipliers applied at approval.
 import { getTier, tierMultiplier } from "./tiers";
 import { bumpChallenge, evaluateAchievements } from "./gamification";
 
