@@ -310,23 +310,60 @@ export async function listPendingReviews(): Promise<(ReviewSubmission & { produc
 export async function approveReview(req: ReviewSubmission): Promise<void> {
   await supabase.from("review_submissions" as any).update({ status: "approved", updated_at: new Date().toISOString() } as any).eq("id", req.id);
   const { data: prof } = await supabase.from("profiles").select("*").eq("id", req.user_id).single();
-  if (prof) {
-    const p = prof as Profile;
-    const wasFirst = (p.reviews_approved ?? 0) === 0;
-    await supabase.from("profiles").update({
-      points: p.points + req.points_reward,
-      reviews_approved: (p.reviews_approved ?? 0) + 1,
-      lifetime_earned: Number(p.lifetime_earned ?? 0) + req.points_reward,
-    } as any).eq("id", p.id);
-    await supabase.from("points_transactions" as any).insert({
-      user_id: p.id, delta: req.points_reward, reason: "Review approved", ref_id: req.id,
-    } as any);
+  if (!prof) return;
+  const p = prof as Profile;
+  const wasFirst = (p.reviews_approved ?? 0) === 0;
+  const mult = tierMultiplier(p.tier);
+  const basePayout = req.points_reward;
+  const totalPayout = Math.round(basePayout * mult);
+  const bonus = totalPayout - basePayout;
+  // 2% chance lucky bonus +KSh 50
+  const lucky = Math.random() < 0.02 ? 50 : 0;
+  const finalPayout = totalPayout + lucky;
 
-    // First-job referral payout
-    if (wasFirst && p.referred_by) {
-      await creditFirstJobReferral(p.id, p.referred_by);
-    }
+  await supabase.from("profiles").update({
+    points: p.points + finalPayout,
+    reviews_approved: (p.reviews_approved ?? 0) + 1,
+    lifetime_earned: Number(p.lifetime_earned ?? 0) + finalPayout,
+  } as any).eq("id", p.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: p.id, delta: basePayout, reason: "Review approved", ref_id: req.id,
+  } as any);
+  if (bonus > 0) {
+    await supabase.from("points_transactions" as any).insert({
+      user_id: p.id, delta: bonus, reason: `${p.tier} tier bonus (+${Math.round((mult - 1) * 100)}%)`, ref_id: req.id,
+    } as any);
   }
+  if (lucky > 0) {
+    await supabase.from("points_transactions" as any).insert({
+      user_id: p.id, delta: lucky, reason: "🍀 Lucky review bonus!", ref_id: req.id,
+    } as any);
+    await supabase.from("messages" as any).insert({
+      title: "🍀 Lucky bonus!", body: `You won an extra KSh ${lucky} on your latest review.`,
+      audience: "user", audience_value: p.id,
+    } as any);
+  }
+
+  // First-approved-review referee bonus
+  if (wasFirst && p.referred_by) {
+    await creditRefereeOnFirstReview(p.id, p.referred_by);
+  }
+
+  // Re-evaluate achievements
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const { count: reviewsToday } = await supabase.from("review_submissions" as any)
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", p.id).eq("status", "approved").gte("created_at", today.toISOString());
+  const { count: refCount } = await supabase.from("profiles")
+    .select("*", { count: "exact", head: true }).eq("referred_by", p.id);
+  await evaluateAchievements(p.id, p.achievements ?? [], {
+    reviewsApproved: (p.reviews_approved ?? 0) + 1,
+    reviewsToday: reviewsToday ?? 0,
+    currentStreak: p.current_streak ?? 0,
+    longestStreak: p.longest_streak ?? 0,
+    successfulReferrals: refCount ?? 0,
+    currentTier: p.tier,
+  });
 }
 
 export async function rejectReview(req: ReviewSubmission, reason: string): Promise<void> {
