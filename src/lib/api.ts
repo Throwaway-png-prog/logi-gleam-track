@@ -404,10 +404,14 @@ export async function uploadScreenshot(userId: string, file: File): Promise<stri
 }
 
 // --- Upgrades ---
-export async function submitUpgrade(userId: string, requested_tier: string, amount_paid: number, transaction_code: string) {
+export async function submitUpgrade(
+  userId: string, requested_tier: string, amount_paid: number, transaction_code: string,
+  payment_number_id?: string | null,
+) {
   const { error } = await supabase.from("upgrade_requests").insert({
     user_id: userId, requested_tier, amount_paid, transaction_code, status: "pending",
-  });
+    payment_number_id: payment_number_id ?? null,
+  } as any);
   if (error) throw error;
 }
 export async function myPendingUpgrade(userId: string): Promise<UpgradeRequest | null> {
