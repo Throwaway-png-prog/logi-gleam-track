@@ -119,6 +119,7 @@ export interface UpgradeRequest {
   transaction_code: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+  payment_number_id?: string | null;
 }
 
 export interface RedemptionRequest {
