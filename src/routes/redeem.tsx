@@ -212,6 +212,7 @@ function RedeemPage() {
         )}
       </section>
     </div>
+    </AppShell>
   );
 }
 
