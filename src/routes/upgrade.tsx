@@ -6,6 +6,7 @@ import {
   getSessionId, loadProfile, submitUpgrade, myPendingUpgrade,
   type Profile, type UpgradeRequest,
 } from "@/lib/api";
+import { AppShell } from "@/components/AppShell";
 import { TIERS, getTier } from "@/lib/tiers";
 
 export const Route = createFileRoute("/upgrade")({
@@ -160,5 +161,6 @@ function UpgradePage() {
         </>
       )}
     </div>
+    </AppShell>
   );
 }
