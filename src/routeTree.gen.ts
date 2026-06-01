@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as X7k2p9m4q1adminRouteImport } from './routes/x7k2p9m4q1admin'
+import { Route as VipRouteImport } from './routes/vip'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
@@ -27,6 +28,11 @@ import { Route as JoinCodeRouteImport } from './routes/join.$code'
 const X7k2p9m4q1adminRoute = X7k2p9m4q1adminRouteImport.update({
   id: '/x7k2p9m4q1admin',
   path: '/x7k2p9m4q1admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VipRoute = VipRouteImport.update({
+  id: '/vip',
+  path: '/vip',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UpgradeRoute = UpgradeRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/supervisor': typeof SupervisorRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
+  '/vip': typeof VipRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/supervisor': typeof SupervisorRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
+  '/vip': typeof VipRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/supervisor': typeof SupervisorRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
+  '/vip': typeof VipRoute
   '/x7k2p9m4q1admin': typeof X7k2p9m4q1adminRoute
   '/join/$code': typeof JoinCodeRoute
   '/products/$id': typeof ProductsIdRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/supervisor'
     | '/terms'
     | '/upgrade'
+    | '/vip'
     | '/x7k2p9m4q1admin'
     | '/join/$code'
     | '/products/$id'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/supervisor'
     | '/terms'
     | '/upgrade'
+    | '/vip'
     | '/x7k2p9m4q1admin'
     | '/join/$code'
     | '/products/$id'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/supervisor'
     | '/terms'
     | '/upgrade'
+    | '/vip'
     | '/x7k2p9m4q1admin'
     | '/join/$code'
     | '/products/$id'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   SupervisorRoute: typeof SupervisorRoute
   TermsRoute: typeof TermsRoute
   UpgradeRoute: typeof UpgradeRoute
+  VipRoute: typeof VipRoute
   X7k2p9m4q1adminRoute: typeof X7k2p9m4q1adminRoute
   JoinCodeRoute: typeof JoinCodeRoute
 }
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       path: '/x7k2p9m4q1admin'
       fullPath: '/x7k2p9m4q1admin'
       preLoaderRoute: typeof X7k2p9m4q1adminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vip': {
+      id: '/vip'
+      path: '/vip'
+      fullPath: '/vip'
+      preLoaderRoute: typeof VipRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/upgrade': {
@@ -338,19 +358,10 @@ const rootRouteChildren: RootRouteChildren = {
   SupervisorRoute: SupervisorRoute,
   TermsRoute: TermsRoute,
   UpgradeRoute: UpgradeRoute,
+  VipRoute: VipRoute,
   X7k2p9m4q1adminRoute: X7k2p9m4q1adminRoute,
   JoinCodeRoute: JoinCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -14,7 +14,7 @@ import { IdleTimeout } from "./IdleTimeout";
 const NAV = [
   { to: "/app", label: "Home", icon: Home },
   { to: "/products", label: "Earn", icon: ShoppingBag },
-  { to: "/news", label: "News", icon: Newspaper },
+  { to: "/vip", label: "VIP", icon: Crown },
   { to: "/redeem", label: "Wallet", icon: Wallet },
   { to: "/profile", label: "Me", icon: History },
 ] as const;

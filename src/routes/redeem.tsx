@@ -6,6 +6,7 @@ import {
   getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings,
   type Profile, type RedemptionRequest,
 } from "@/lib/api";
+import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/redeem")({
   component: RedeemPage,
@@ -73,7 +74,8 @@ function RedeemPage() {
   }
 
   return (
-    <div className="min-h-screen px-5 pt-6 pb-24 max-w-xl mx-auto">
+    <AppShell user={user}>
+    <div className="px-5 pt-6 pb-8 max-w-xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link to="/" className="size-11 rounded-xl glass flex items-center justify-center"><ArrowLeft className="size-5" /></Link>
         <div>
@@ -211,6 +213,7 @@ function RedeemPage() {
         )}
       </section>
     </div>
+    </AppShell>
   );
 }
 

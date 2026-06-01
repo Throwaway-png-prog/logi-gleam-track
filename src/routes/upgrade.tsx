@@ -6,6 +6,7 @@ import {
   getSessionId, loadProfile, submitUpgrade, myPendingUpgrade,
   type Profile, type UpgradeRequest,
 } from "@/lib/api";
+import { AppShell } from "@/components/AppShell";
 import { TIERS, getTier } from "@/lib/tiers";
 
 export const Route = createFileRoute("/upgrade")({
@@ -58,7 +59,8 @@ function UpgradePage() {
   }
 
   return (
-    <div className="min-h-screen px-5 pt-6 pb-24 max-w-xl mx-auto">
+    <AppShell user={user}>
+    <div className="px-5 pt-6 pb-8 max-w-xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link to="/" className="size-11 rounded-xl glass flex items-center justify-center active:scale-95">
           <ArrowLeft className="size-5" />
@@ -159,5 +161,6 @@ function UpgradePage() {
         </>
       )}
     </div>
+    </AppShell>
   );
 }
