@@ -498,6 +498,7 @@ export type Database = {
           avatar_url: string | null
           blocked: boolean
           blocked_reason: string | null
+          consecutive_login_days: number
           created_at: string
           current_streak: number
           deleted_at: string | null
@@ -508,7 +509,9 @@ export type Database = {
           interview_responses: Json | null
           jobs_in_tier: number
           last_active_at: string | null
+          last_app_open: string | null
           last_login_at: string | null
+          last_nudge_at: string | null
           last_reset_date: string
           last_review_date: string | null
           last_streak_date: string | null
@@ -527,11 +530,14 @@ export type Database = {
           reviews_approved: number
           reviews_rejected: number
           role: string
+          signup_date: string | null
           terms_accepted_at: string | null
           theme_pref: string
           tier: string
           total_referral_earnings: number
           units_today: number
+          vip_level: number
+          vip0_claimed: boolean
           warnings: number
           worker_id: string
         }
@@ -540,6 +546,7 @@ export type Database = {
           avatar_url?: string | null
           blocked?: boolean
           blocked_reason?: string | null
+          consecutive_login_days?: number
           created_at?: string
           current_streak?: number
           deleted_at?: string | null
@@ -550,7 +557,9 @@ export type Database = {
           interview_responses?: Json | null
           jobs_in_tier?: number
           last_active_at?: string | null
+          last_app_open?: string | null
           last_login_at?: string | null
+          last_nudge_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
           last_streak_date?: string | null
@@ -569,11 +578,14 @@ export type Database = {
           reviews_approved?: number
           reviews_rejected?: number
           role?: string
+          signup_date?: string | null
           terms_accepted_at?: string | null
           theme_pref?: string
           tier?: string
           total_referral_earnings?: number
           units_today?: number
+          vip_level?: number
+          vip0_claimed?: boolean
           warnings?: number
           worker_id: string
         }
@@ -582,6 +594,7 @@ export type Database = {
           avatar_url?: string | null
           blocked?: boolean
           blocked_reason?: string | null
+          consecutive_login_days?: number
           created_at?: string
           current_streak?: number
           deleted_at?: string | null
@@ -592,7 +605,9 @@ export type Database = {
           interview_responses?: Json | null
           jobs_in_tier?: number
           last_active_at?: string | null
+          last_app_open?: string | null
           last_login_at?: string | null
+          last_nudge_at?: string | null
           last_reset_date?: string
           last_review_date?: string | null
           last_streak_date?: string | null
@@ -611,11 +626,14 @@ export type Database = {
           reviews_approved?: number
           reviews_rejected?: number
           role?: string
+          signup_date?: string | null
           terms_accepted_at?: string | null
           theme_pref?: string
           tier?: string
           total_referral_earnings?: number
           units_today?: number
+          vip_level?: number
+          vip0_claimed?: boolean
           warnings?: number
           worker_id?: string
         }
@@ -864,6 +882,111 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vip_completions: {
+        Row: {
+          completed_at: string
+          date: string
+          id: string
+          reward_ksh: number
+          task_payload: Json | null
+          user_id: string
+          vip_level: number
+        }
+        Insert: {
+          completed_at?: string
+          date?: string
+          id?: string
+          reward_ksh: number
+          task_payload?: Json | null
+          user_id: string
+          vip_level: number
+        }
+        Update: {
+          completed_at?: string
+          date?: string
+          id?: string
+          reward_ksh?: number
+          task_payload?: Json | null
+          user_id?: string
+          vip_level?: number
+        }
+        Relationships: []
+      }
+      vip_jobs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_one_time: boolean
+          name: string
+          reward_ksh: number
+          task_kind: string
+          upgrade_fee_ksh: number | null
+          vip_level: number
+          welcome_bonus_ksh: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_one_time?: boolean
+          name: string
+          reward_ksh: number
+          task_kind: string
+          upgrade_fee_ksh?: number | null
+          vip_level: number
+          welcome_bonus_ksh?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_one_time?: boolean
+          name?: string
+          reward_ksh?: number
+          task_kind?: string
+          upgrade_fee_ksh?: number | null
+          vip_level?: number
+          welcome_bonus_ksh?: number | null
+        }
+        Relationships: []
+      }
+      vip_upgrade_requests: {
+        Row: {
+          amount_ksh: number
+          created_at: string
+          from_vip: number
+          id: string
+          payment_number_id: string | null
+          status: string
+          to_vip: number
+          transaction_code: string
+          user_id: string
+        }
+        Insert: {
+          amount_ksh: number
+          created_at?: string
+          from_vip: number
+          id?: string
+          payment_number_id?: string | null
+          status?: string
+          to_vip: number
+          transaction_code: string
+          user_id: string
+        }
+        Update: {
+          amount_ksh?: number
+          created_at?: string
+          from_vip?: number
+          id?: string
+          payment_number_id?: string | null
+          status?: string
+          to_vip?: number
+          transaction_code?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       weekly_leaderboard_payouts: {
         Row: {
