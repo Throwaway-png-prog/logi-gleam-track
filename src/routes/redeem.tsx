@@ -6,6 +6,7 @@ import {
   getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings,
   type Profile, type RedemptionRequest,
 } from "@/lib/api";
+import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/redeem")({
   component: RedeemPage,
