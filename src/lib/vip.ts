@@ -100,7 +100,7 @@ export async function claimVipJob(args: {
   };
   if (job.is_one_time && job.vip_level === 0) patch.vip0_claimed = true;
 
-  await supabase.from("profiles").update(patch).eq("id", userId);
+  await supabase.from("profiles").update(patch as any).eq("id", userId);
 
   await supabase.from("vip_completions" as any).insert({
     user_id: userId,
