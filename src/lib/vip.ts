@@ -326,5 +326,5 @@ export async function checkUpgradeNudge(args: {
 }
 
 async function markNudge(userId: string) {
-  await supabase.from("profiles").update({ last_nudge_at: new Date().toISOString() }).eq("id", userId);
+  await supabase.from("profiles").update({ last_nudge_at: new Date().toISOString() } as any).eq("id", userId);
 }
