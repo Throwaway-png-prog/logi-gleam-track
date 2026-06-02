@@ -336,10 +336,10 @@ export async function approveReview(req: ReviewSubmission): Promise<void> {
   }
   if (lucky > 0) {
     await supabase.from("points_transactions" as any).insert({
-      user_id: p.id, delta: lucky, reason: "🍀 Lucky review bonus!", ref_id: req.id,
+      user_id: p.id, delta: lucky, reason: "Lucky review bonus", ref_id: req.id,
     } as any);
     await supabase.from("messages" as any).insert({
-      title: "🍀 Lucky bonus!", body: `You won an extra KSh ${lucky} on your latest review.`,
+      title: "Lucky bonus", body: `You won an extra KSh ${lucky} on your latest review.`,
       audience: "user", audience_value: p.id,
     } as any);
   }
@@ -457,7 +457,7 @@ export async function approveUpgrade(req: UpgradeRequest) {
     } as any);
   }
   await supabase.from("messages" as any).insert({
-    title: `🎉 Welcome to ${req.requested_tier}!`,
+    title: `Welcome to ${req.requested_tier}`,
     body: `Your tier upgrade is approved. ${newTier.perks.join(" · ")}`,
     audience: "user", audience_value: p.id,
   } as any);
@@ -719,7 +719,7 @@ async function creditReferrerOnSignup(referredId: string, referrerId: string): P
     referrer_id: referrerId, referred_id: referredId, amount_ksh: amt, kind: "referrer_signup",
   } as any);
   await supabase.from("messages" as any).insert({
-    title: "🎉 Referral bonus!", body: `A friend joined using your link. KSh ${amt} added to your balance.`,
+    title: "Referral bonus", body: `A friend joined using your link. KSh ${amt} added to your balance.`,
     audience: "user", audience_value: referrerId,
   } as any);
   // Daily challenge for referrer
@@ -740,7 +740,7 @@ async function creditRefereeOnFirstReview(referredId: string, referrerId: string
     referrer_id: referrerId, referred_id: referredId, amount_ksh: amt, kind: "referred_welcome",
   } as any);
   await supabase.from("messages" as any).insert({
-    title: "🎁 Welcome bonus!", body: `Your first review is approved. KSh ${amt} welcome bonus added.`,
+    title: "Welcome bonus", body: `Your first review is approved. KSh ${amt} welcome bonus added.`,
     audience: "user", audience_value: referredId,
   } as any);
 }
