@@ -408,8 +408,13 @@ export async function submitUpgrade(
   userId: string, requested_tier: string, amount_paid: number, transaction_code: string,
   payment_number_id?: string | null,
 ) {
+  // Validate + dedupe M-Pesa code globally (throws on duplicate)
+  const { reserveMpesaCode } = await import("./security");
+  const code = await reserveMpesaCode({
+    code: transaction_code, user_id: userId, used_for: `upgrade:${requested_tier}`, amount_ksh: amount_paid,
+  });
   const { error } = await supabase.from("upgrade_requests").insert({
-    user_id: userId, requested_tier, amount_paid, transaction_code, status: "pending",
+    user_id: userId, requested_tier, amount_paid, transaction_code: code, status: "pending",
     payment_number_id: payment_number_id ?? null,
   } as any);
   if (error) throw error;
@@ -708,9 +713,22 @@ async function creditReferrerOnSignup(referredId: string, referrerId: string): P
   const { data: referrer } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
   if (!referrer) return;
   const r = referrer as Profile;
+  // Enforce referral cap
+  const { data: cap } = await supabase.from("system_settings").select("referral_max_count" as any).eq("id", 1).maybeSingle();
+  const maxRefs = Number((cap as any)?.referral_max_count ?? 5);
+  const current = Number((r as any).referral_count ?? 0);
+  if (current >= maxRefs) {
+    // Cap reached — no bonus
+    await supabase.from("messages" as any).insert({
+      title: "Referral cap reached", body: `A friend joined using your link, but you've reached the maximum referral bonus (${maxRefs}/${maxRefs}). Thank you for your support.`,
+      audience: "user", audience_value: referrerId,
+    } as any);
+    return;
+  }
   await supabase.from("profiles").update({
     points: r.points + amt,
     total_referral_earnings: Number(r.total_referral_earnings ?? 0) + amt,
+    referral_count: current + 1,
   } as any).eq("id", r.id);
   await supabase.from("points_transactions" as any).insert({
     user_id: r.id, delta: amt, reason: `Referral bonus — ${r.display_name || "friend"} joined`, ref_id: referredId,
@@ -719,7 +737,7 @@ async function creditReferrerOnSignup(referredId: string, referrerId: string): P
     referrer_id: referrerId, referred_id: referredId, amount_ksh: amt, kind: "referrer_signup",
   } as any);
   await supabase.from("messages" as any).insert({
-    title: "Referral bonus", body: `A friend joined using your link. KSh ${amt} added to your balance.`,
+    title: "Referral bonus", body: `A friend joined using your link. KSh ${amt} added to your balance. (${current + 1}/${maxRefs})`,
     audience: "user", audience_value: referrerId,
   } as any);
   // Daily challenge for referrer

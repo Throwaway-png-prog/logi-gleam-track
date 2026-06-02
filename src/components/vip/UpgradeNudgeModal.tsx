@@ -49,7 +49,7 @@ export function UpgradeNudgeModal({ nudge, onClose }: { nudge: Nudge | null; onC
                   <div className="mx-auto size-14 rounded-2xl bg-gradient-gold flex items-center justify-center">
                     <Clock className="size-7 text-gold-foreground" />
                   </div>
-                  <h3 className="font-bold text-xl">🎉 24-hour bonus</h3>
+                  <h3 className="font-bold text-xl">24-hour bonus</h3>
                   <p className="text-sm text-muted-foreground">
                     Upgrade to <span className="text-gold font-semibold">VIP {nudge.nextLevel}</span> in the next 24 hours and get an instant
                     <span className="text-gold font-bold"> {formatKsh(nudge.bonusKsh)} bonus </span>
