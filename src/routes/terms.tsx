@@ -54,7 +54,7 @@ function TermsPage() {
         </Section>
 
         <Section title="8. Prohibited conduct">
-          You may not (a) create multiple accounts, (b) automate submissions, (c) impersonate others, (d) attempt to defraud the Platform or its supervisors, or (e) use the Platform for any illegal activity.
+          You may not (a) create multiple accounts, (b) automate submissions, (c) impersonate others, (d) attempt to defraud the Platform or its administrators, or (e) use the Platform for any illegal activity.
         </Section>
 
         <Section title="9. Termination">
@@ -70,7 +70,7 @@ function TermsPage() {
         </Section>
 
         <Section title="12. Contact">
-          Questions? Reach support through the in-app messages or your supervisor.
+          Questions? Reach support through the in-app messages.
         </Section>
       </div>
 

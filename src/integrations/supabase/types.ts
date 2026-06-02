@@ -76,6 +76,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          admin_label: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          admin_label?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          admin_label?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       daily_challenges: {
         Row: {
           challenge_key: string
@@ -133,6 +163,36 @@ export type Database = {
           duration_seconds?: number
           id?: string
           message?: string
+        }
+        Relationships: []
+      }
+      fraud_flags: {
+        Row: {
+          created_at: string
+          evidence: Json
+          id: string
+          kind: string
+          score_delta: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence?: Json
+          id?: string
+          kind: string
+          score_delta?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence?: Json
+          id?: string
+          kind?: string
+          score_delta?: number
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -280,6 +340,33 @@ export type Database = {
           created_at?: string
           id?: string
           title?: string
+        }
+        Relationships: []
+      }
+      mpesa_codes: {
+        Row: {
+          amount_ksh: number | null
+          code: string
+          created_at: string
+          id: string
+          used_for: string
+          user_id: string
+        }
+        Insert: {
+          amount_ksh?: number | null
+          code: string
+          created_at?: string
+          id?: string
+          used_for: string
+          user_id: string
+        }
+        Update: {
+          amount_ksh?: number | null
+          code?: string
+          created_at?: string
+          id?: string
+          used_for?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -502,11 +589,15 @@ export type Database = {
           created_at: string
           current_streak: number
           deleted_at: string | null
+          device_fingerprints: Json
           display_name: string
           display_name_changed_at: string | null
+          failed_login_count: number
+          fraud_score: number
           full_name: string
           id: string
           interview_responses: Json | null
+          is_admin: boolean
           jobs_in_tier: number
           last_active_at: string | null
           last_app_open: string | null
@@ -516,6 +607,7 @@ export type Database = {
           last_review_date: string | null
           last_streak_date: string | null
           lifetime_earned: number
+          lockout_until: string | null
           longest_streak: number
           mpesa_number: string | null
           mpesa_verified: boolean
@@ -525,6 +617,7 @@ export type Database = {
           pin_salt: string | null
           points: number
           referral_code: string | null
+          referral_count: number
           referred_by: string | null
           review_streak: number
           reviews_approved: number
@@ -550,11 +643,15 @@ export type Database = {
           created_at?: string
           current_streak?: number
           deleted_at?: string | null
+          device_fingerprints?: Json
           display_name?: string
           display_name_changed_at?: string | null
+          failed_login_count?: number
+          fraud_score?: number
           full_name?: string
           id?: string
           interview_responses?: Json | null
+          is_admin?: boolean
           jobs_in_tier?: number
           last_active_at?: string | null
           last_app_open?: string | null
@@ -564,6 +661,7 @@ export type Database = {
           last_review_date?: string | null
           last_streak_date?: string | null
           lifetime_earned?: number
+          lockout_until?: string | null
           longest_streak?: number
           mpesa_number?: string | null
           mpesa_verified?: boolean
@@ -573,6 +671,7 @@ export type Database = {
           pin_salt?: string | null
           points?: number
           referral_code?: string | null
+          referral_count?: number
           referred_by?: string | null
           review_streak?: number
           reviews_approved?: number
@@ -598,11 +697,15 @@ export type Database = {
           created_at?: string
           current_streak?: number
           deleted_at?: string | null
+          device_fingerprints?: Json
           display_name?: string
           display_name_changed_at?: string | null
+          failed_login_count?: number
+          fraud_score?: number
           full_name?: string
           id?: string
           interview_responses?: Json | null
+          is_admin?: boolean
           jobs_in_tier?: number
           last_active_at?: string | null
           last_app_open?: string | null
@@ -612,6 +715,7 @@ export type Database = {
           last_review_date?: string | null
           last_streak_date?: string | null
           lifetime_earned?: number
+          lockout_until?: string | null
           longest_streak?: number
           mpesa_number?: string | null
           mpesa_verified?: boolean
@@ -621,6 +725,7 @@ export type Database = {
           pin_salt?: string | null
           points?: number
           referral_code?: string | null
+          referral_count?: number
           referred_by?: string | null
           review_streak?: number
           reviews_approved?: number
@@ -773,6 +878,7 @@ export type Database = {
           redemptions_frozen: boolean
           redemptions_on_hold: boolean
           referee_bonus_ksh: number
+          referral_max_count: number
           referrer_bonus_ksh: number
           registration_open: boolean
           updated_at: string
@@ -789,6 +895,7 @@ export type Database = {
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
           referee_bonus_ksh?: number
+          referral_max_count?: number
           referrer_bonus_ksh?: number
           registration_open?: boolean
           updated_at?: string
@@ -805,6 +912,7 @@ export type Database = {
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
           referee_bonus_ksh?: number
+          referral_max_count?: number
           referrer_bonus_ksh?: number
           registration_open?: boolean
           updated_at?: string

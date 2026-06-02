@@ -79,6 +79,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "mobile-web-app-capable", content: "yes" },
+      // Security headers (best-effort via meta; full coverage needs server headers)
+      { httpEquiv: "X-Content-Type-Options", content: "nosniff" },
+      { httpEquiv: "Referrer-Policy", content: "strict-origin-when-cross-origin" },
+      { httpEquiv: "Permissions-Policy", content: "geolocation=(), microphone=(), camera=()" },
       { title: "LogiBack Earn — Kenya's Trusted Review Platform" },
       { name: "description", content: "Get paid in real KSh to review products. Withdraw to M-Pesa. Built in Kenya." },
       { property: "og:title", content: "LogiBack Earn — Kenya's Trusted Review Platform" },

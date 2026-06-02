@@ -55,7 +55,7 @@ export function EmergencyOverlay() {
               <AlertTriangle className="size-12" />
             </div>
             <p className="text-xs uppercase tracking-[0.4em] text-red-200">Priority alert</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold mt-2">🚨 EMERGENCY ALERT 🚨</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold mt-2">Emergency Alert</h1>
             <p className="mt-6 text-base whitespace-pre-line text-red-50/95 leading-relaxed">
               {state.message}
             </p>

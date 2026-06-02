@@ -2,11 +2,12 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
-  ArrowRight, ShoppingBag, Star, Wallet, ShieldCheck, Sparkles, Plus, Minus,
-  TrendingUp, Users, Coins, Quote, Smartphone, Lock,
+  ArrowRight, ShoppingBag, Star, Wallet, ShieldCheck, Plus, Minus,
+  TrendingUp, Users, Quote, Smartphone, Lock, MapPin, Mail, Clock,
 } from "lucide-react";
 import { InstallPrompt, useIsStandalone } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
+import heroBg from "@/assets/hero-bg.jpg";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -22,39 +23,47 @@ export const Route = createFileRoute("/")({
 });
 
 const STEPS = [
-  { icon: ShoppingBag, title: "Pick a product", body: "Browse active jobs from Jumia, Kilimall, Amazon and more." },
-  { icon: Star, title: "Write your review", body: "Search the product yourself, leave an honest review with a screenshot." },
+  { icon: ShoppingBag, title: "Pick a product", body: "Browse active jobs from popular Kenyan and global e-commerce platforms." },
+  { icon: Star, title: "Write your review", body: "Search the product yourself and leave an honest review with a screenshot." },
   { icon: Wallet, title: "Withdraw to M-Pesa", body: "Get paid in real KSh. Cash out anytime from KSh 1,000." },
 ];
 
 const TESTIMONIALS = [
-  { name: "Brian K.", city: "Nairobi", text: "I made KSh 18,400 in my first month. The app is so smooth.", earned: "KSh 18,400" },
-  { name: "Aisha M.", city: "Mombasa", text: "Genuine platform. M-Pesa hits in minutes after approval.", earned: "KSh 32,100" },
-  { name: "Dennis O.", city: "Kisumu", text: "I do reviews on matatu rides home. Honest extra income.", earned: "KSh 9,750" },
+  { name: "Brian K.", city: "Nairobi", text: "I earned KSh 18,400 in my first month. The app is straightforward to use.", earned: "KSh 18,400" },
+  { name: "Aisha M.", city: "Mombasa", text: "Reliable platform. M-Pesa transfers arrive within minutes after approval.", earned: "KSh 32,100" },
+  { name: "Dennis O.", city: "Kisumu", text: "I review products during my evening commute. Honest extra income.", earned: "KSh 9,750" },
 ];
 
 const FAQ = [
-  { q: "Is this really free to join?", a: "Yes. Sign up with your phone and start earning on the Starter tier today." },
-  { q: "How fast is M-Pesa withdrawal?", a: "Once a review is approved, you can withdraw to your verified M-Pesa number. Most payouts arrive in under 10 minutes." },
-  { q: "What stops people from copy-pasting reviews?", a: "Every review is quality-checked by our team. Spam or duplicate content is rejected and may suspend your account." },
-  { q: "Do I need a smartphone?", a: "Yes. LogiBack Earn is a mobile-first app. Add it to your home screen for the best experience." },
-  { q: "Can I refer friends?", a: "Yes. You earn KSh 100 whenever a referred friend completes their first approved review." },
+  { q: "Is LogiBack Earn legit?", a: "Yes. LogiBack Earn pays verified reviewers in KSh via M-Pesa. Every payout is recorded and traceable. We do not ask for upfront fees on the free Starter tier." },
+  { q: "Is it free to join?", a: "Yes. Registration is free. You can start earning on the Starter tier today with no payment required." },
+  { q: "How fast is M-Pesa withdrawal?", a: "Once a review is approved, you can request a withdrawal to your verified M-Pesa number. Payouts are typically processed within a few minutes." },
+  { q: "What stops people from copy-pasting reviews?", a: "Every review is quality-checked by our admin team. Spam or duplicate content is rejected and may result in account suspension." },
+  { q: "Do I need a smartphone?", a: "Yes. LogiBack Earn is mobile-first. Add it to your home screen for the best experience." },
+  { q: "Can I refer friends?", a: "Yes. You earn a referral bonus for each friend who completes their first approved review, up to your account referral limit." },
 ];
 
 const TRUST = [
-  { icon: () => <span className="text-base">🇰🇪</span>, label: "Built in Kenya" },
-  { icon: Lock, label: "SSL Secured" },
+  { icon: () => <span className="text-base" aria-label="Kenya">🇰🇪</span>, label: "Built in Kenya" },
+  { icon: Lock, label: "Secured connection" },
   { icon: Smartphone, label: "M-Pesa Payouts" },
-  { icon: Users, label: "10,000+ Reviewers" },
+  { icon: Users, label: "Growing community" },
 ];
 
 function Landing() {
   const navigate = useNavigate();
   const standalone = useIsStandalone();
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     if (standalone) navigate({ to: "/app" });
   }, [standalone, navigate]);
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -69,30 +78,39 @@ function Landing() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-transparent to-transparent" />
-        <div className="absolute top-20 -left-20 size-80 rounded-full bg-primary/30 blur-3xl" />
-        <div className="absolute top-40 -right-20 size-80 rounded-full bg-gold/20 blur-3xl" />
+      {/* HERO with background image */}
+      <section className="relative overflow-hidden min-h-[78vh] flex items-center">
+        <div
+          className="absolute inset-0 bg-cover bg-center will-change-transform"
+          style={{
+            backgroundImage: `url(${heroBg})`,
+            transform: `translateY(${scrollY * 0.25}px) scale(1.1)`,
+          }}
+          aria-hidden
+        />
+        {/* Dark gradient overlay for legibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/40 sm:from-background/40" aria-hidden />
 
-        <div className="relative max-w-6xl mx-auto px-5 pt-12 pb-16 text-center">
+        <div className="relative max-w-6xl mx-auto px-5 pt-16 pb-24 w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-semibold mb-6">
-            <Sparkles className="size-3.5" /> Kenya's trusted review platform
+            <ShieldCheck className="size-3.5" /> Kenya's trusted review platform
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-6xl font-extrabold leading-tight max-w-3xl mx-auto">
+            className="text-4xl sm:text-6xl font-extrabold leading-tight max-w-3xl">
             Get paid to review products.{" "}
             <span className="text-gradient-gold">From your phone.</span>
           </motion.h1>
 
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="mt-5 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
+            className="mt-5 text-base sm:text-lg text-foreground/90 max-w-xl">
             Earn real KSh writing honest product reviews. Withdraw straight to M-Pesa.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            className="mt-8 flex flex-col sm:flex-row gap-3">
             <Link to="/app" className="h-14 px-8 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow flex items-center justify-center gap-2 active:scale-[0.98] transition">
               Start earning today <ArrowRight className="size-5" />
             </Link>
@@ -101,15 +119,33 @@ function Landing() {
             </a>
           </motion.div>
 
-          {/* Trust strip */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+          <div className="mt-10 flex flex-wrap items-center gap-4 sm:gap-6">
             {TRUST.map((t) => (
-              <div key={t.label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div key={t.label} className="flex items-center gap-1.5 text-xs text-foreground/85">
                 <t.icon className="size-4 text-gold" />
                 <span className="font-semibold">{t.label}</span>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Supported platforms — generic, no fabricated partnerships */}
+      <section className="border-y border-border/30 bg-background/60 py-8">
+        <div className="max-w-6xl mx-auto px-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground text-center font-semibold">
+            Reviews accepted from leading e-commerce platforms
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-muted-foreground/60">
+            <span className="font-bold text-lg tracking-tight">Jumia</span>
+            <span className="font-bold text-lg tracking-tight">Kilimall</span>
+            <span className="font-bold text-lg tracking-tight">Amazon</span>
+            <span className="font-bold text-lg tracking-tight">Jiji</span>
+            <span className="font-bold text-lg tracking-tight">Masoko</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground/60 text-center mt-3">
+            Brand names shown identify the platforms our reviewers cover. No partnership or endorsement is implied.
+          </p>
         </div>
       </section>
 
@@ -173,20 +209,36 @@ function Landing() {
           <div className="absolute -top-20 -right-20 size-60 rounded-full bg-gradient-gold opacity-30 blur-3xl" />
           <ShieldCheck className="size-12 mx-auto text-gold mb-4" />
           <h2 className="text-3xl sm:text-4xl font-bold">Ready to start earning?</h2>
-          <p className="mt-3 text-muted-foreground">It takes 30 seconds to sign up. Your first review pays today.</p>
+          <p className="mt-3 text-muted-foreground">Sign up in 30 seconds. Your first review pays today.</p>
           <Link to="/app" className="mt-6 inline-flex h-14 px-8 rounded-2xl bg-gradient-gold text-gold-foreground font-bold shadow-gold items-center gap-2">
             Create my account <TrendingUp className="size-5" />
           </Link>
         </div>
       </section>
 
-      <footer className="border-t border-border/40 py-8 text-center text-xs text-muted-foreground space-y-2">
-        <div className="flex items-center justify-center gap-4">
-          <Link to="/terms" className="hover:text-foreground">Terms & Conditions</Link>
-          <span aria-hidden>·</span>
-          <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+      <footer className="border-t border-border/40 py-10 mt-10">
+        <div className="max-w-6xl mx-auto px-5 grid sm:grid-cols-3 gap-8 text-sm">
+          <div>
+            <Logo size={36} />
+            <p className="text-xs text-muted-foreground mt-3 max-w-xs">
+              Kenya's trusted review platform. We pay verified reviewers in KSh via M-Pesa.
+            </p>
+          </div>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Contact</p>
+            <p className="flex items-center gap-2"><MapPin className="size-3.5 text-gold" /> Nairobi, Kenya</p>
+            <p className="flex items-center gap-2"><Mail className="size-3.5 text-gold" /> support@logibackearn.app</p>
+            <p className="flex items-center gap-2"><Clock className="size-3.5 text-gold" /> Support: Mon–Fri, 9am–5pm EAT</p>
+          </div>
+          <div className="space-y-2 text-xs">
+            <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Legal</p>
+            <Link to="/terms" className="block text-muted-foreground hover:text-foreground">Terms &amp; Conditions</Link>
+            <Link to="/privacy" className="block text-muted-foreground hover:text-foreground">Privacy Policy</Link>
+          </div>
         </div>
-        <p>© {new Date().getFullYear()} LogiBack Earn. Kenya's Trusted Review Platform.</p>
+        <div className="max-w-6xl mx-auto px-5 mt-8 pt-6 border-t border-border/30 text-center text-[11px] text-muted-foreground">
+          © {new Date().getFullYear()} LogiBack Earn. All rights reserved.
+        </div>
       </footer>
     </div>
   );

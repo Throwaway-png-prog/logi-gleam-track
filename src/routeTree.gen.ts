@@ -13,7 +13,6 @@ import { Route as X7k2p9m4q1adminRouteImport } from './routes/x7k2p9m4q1admin'
 import { Route as VipRouteImport } from './routes/vip'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as RedeemRouteImport } from './routes/redeem'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
@@ -43,11 +42,6 @@ const UpgradeRoute = UpgradeRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SupervisorRoute = SupervisorRouteImport.update({
-  id: '/supervisor',
-  path: '/supervisor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RedeemRoute = RedeemRouteImport.update({
@@ -110,7 +104,6 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
-  '/supervisor': typeof SupervisorRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/vip': typeof VipRoute
@@ -127,7 +120,6 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
-  '/supervisor': typeof SupervisorRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/vip': typeof VipRoute
@@ -145,7 +137,6 @@ export interface FileRoutesById {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
-  '/supervisor': typeof SupervisorRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/vip': typeof VipRoute
@@ -164,7 +155,6 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/redeem'
-    | '/supervisor'
     | '/terms'
     | '/upgrade'
     | '/vip'
@@ -181,7 +171,6 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/redeem'
-    | '/supervisor'
     | '/terms'
     | '/upgrade'
     | '/vip'
@@ -198,7 +187,6 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/redeem'
-    | '/supervisor'
     | '/terms'
     | '/upgrade'
     | '/vip'
@@ -216,7 +204,6 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   RedeemRoute: typeof RedeemRoute
-  SupervisorRoute: typeof SupervisorRoute
   TermsRoute: typeof TermsRoute
   UpgradeRoute: typeof UpgradeRoute
   VipRoute: typeof VipRoute
@@ -252,13 +239,6 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/supervisor': {
-      id: '/supervisor'
-      path: '/supervisor'
-      fullPath: '/supervisor'
-      preLoaderRoute: typeof SupervisorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/redeem': {
@@ -355,7 +335,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   RedeemRoute: RedeemRoute,
-  SupervisorRoute: SupervisorRoute,
   TermsRoute: TermsRoute,
   UpgradeRoute: UpgradeRoute,
   VipRoute: VipRoute,
@@ -365,13 +344,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

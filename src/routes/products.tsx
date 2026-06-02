@@ -119,7 +119,7 @@ function ProductsPage() {
             ))}
             {filtered.length === 0 && (
               <p className="col-span-2 py-10 text-center text-sm text-muted-foreground">
-                {products.length === 0 ? "🎉 You've reviewed every available product! New batches drop daily." : "No products match your search."}
+                {products.length === 0 ? "You've reviewed every available product. New batches drop daily." : "No products match your search."}
               </p>
             )}
           </div>
