@@ -590,19 +590,41 @@ function MessagesTab() {
       <div>
         <h2 className="text-xl font-bold mb-3 text-destructive flex items-center gap-2"><AlertTriangle className="size-5" /> Emergency broadcast</h2>
         <div className="glass rounded-2xl p-5 space-y-3 border border-destructive/40">
-          <p className="text-xs text-muted-foreground">Triggers a non-dismissible full-screen alert with a countdown on every user's device.</p>
+          <p className="text-xs text-muted-foreground">Triggers a non-dismissible full-screen alert with a countdown on every user's device. Type <span className="font-mono font-bold">CONFIRM</span> to authorize.</p>
           <label className="block">
             <span className="text-xs text-muted-foreground">Message</span>
             <textarea value={emergencyMsg} onChange={(e) => setEmergencyMsg(e.target.value)} rows={3} className="mt-1 w-full p-3 rounded-lg bg-input border border-border text-sm" />
           </label>
           <Field label="Duration (seconds)" v={String(emergencyDur)} on={(v) => setEmergencyDur(Number(v) || 30)} />
-          <div className="flex gap-2">
-            <button onClick={async () => { await startEmergency(emergencyMsg, emergencyDur); toast.success("Emergency broadcast started"); }}
-              className="flex-1 h-11 rounded-lg bg-destructive text-destructive-foreground font-bold">Start</button>
-            <button onClick={async () => { await stopEmergency(); toast.success("Stopped"); }}
-              className="flex-1 h-11 rounded-lg glass">Stop now</button>
-          </div>
+          <EmergencyConfirmRow
+            onStart={async () => { await startEmergency(emergencyMsg, emergencyDur, "admin"); toast.success("Emergency broadcast started"); }}
+            onStop={async () => { await stopEmergency(); toast.success("Stopped"); }}
+          />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EmergencyConfirmRow({ onStart, onStop }: { onStart: () => Promise<void>; onStop: () => Promise<void> }) {
+  const [confirm, setConfirm] = useState("");
+  const ok = confirm.trim().toUpperCase() === "CONFIRM";
+  return (
+    <div className="space-y-2">
+      <input
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        placeholder='Type CONFIRM to enable'
+        className="w-full h-10 px-3 rounded-lg bg-input border border-border text-sm font-mono"
+      />
+      <div className="flex gap-2">
+        <button
+          disabled={!ok}
+          onClick={async () => { await onStart(); setConfirm(""); }}
+          className="flex-1 h-11 rounded-lg bg-destructive text-destructive-foreground font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+          Start broadcast
+        </button>
+        <button onClick={onStop} className="flex-1 h-11 rounded-lg glass">Stop now</button>
       </div>
     </div>
   );
