@@ -86,7 +86,7 @@ function UpgradePage() {
             <p className="font-semibold text-sm">Upgrade pending review</p>
             <p className="text-xs text-muted-foreground mt-1">
               Your request to {pending.requested_tier} (KSh {Number(pending.amount_paid).toLocaleString()},
-              code {pending.transaction_code}) is awaiting supervisor approval.
+              code {pending.transaction_code}) is awaiting admin approval.
             </p>
           </div>
         </div>
@@ -95,7 +95,7 @@ function UpgradePage() {
       {success && !pending && (
         <div className="mb-5 flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-4">
           <CheckCircle2 className="size-5 text-primary" />
-          <p className="text-sm">Request submitted. A supervisor will review it shortly.</p>
+          <p className="text-sm">Request submitted. Our admin team will review it shortly.</p>
         </div>
       )}
 
