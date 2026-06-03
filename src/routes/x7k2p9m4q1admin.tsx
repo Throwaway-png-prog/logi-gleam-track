@@ -401,7 +401,15 @@ function ProductsTab() {
               <p className="font-semibold text-sm line-clamp-1">{p.name}</p>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-xs text-gradient-gold font-bold">{formatKsh(p.points_reward)}</span>
-                <button onClick={() => setEditing(p)} className="text-xs text-primary flex items-center gap-1"><Edit className="size-3" /> Edit</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setEditing(p)} className="text-xs text-primary flex items-center gap-1"><Edit className="size-3" /> Edit</button>
+                  <button
+                    onClick={async () => { if (confirm(`Delete "${p.name}"? It will be hidden from users.`)) { await softDeleteProduct(p.id); toast.success("Product hidden"); load(); } }}
+                    className="text-xs text-destructive flex items-center gap-1"
+                  >
+                    <Trash2 className="size-3" /> Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -712,12 +720,15 @@ function SettingsTab() {
   const [maint, setMaint] = useState(false);
   const [hold, setHold] = useState(false);
   const [regOpen, setRegOpen] = useState(true);
+  const [minRedeem, setMinRedeem] = useState<number>(1000);
   const [loaded, setLoaded] = useState(false);
 
   async function load() {
     const s = await getSystemSettings();
     const r = await getRegistrationOpen();
-    setMaint(s.maintenance); setHold(s.redemptions_on_hold); setRegOpen(r); setLoaded(true);
+    setMaint(s.maintenance); setHold(s.redemptions_on_hold); setRegOpen(r);
+    setMinRedeem(s.min_redemption_ksh);
+    setLoaded(true);
   }
   useEffect(() => { load(); }, []);
   if (!loaded) return <Loader2 className="size-6 animate-spin" />;
@@ -728,6 +739,100 @@ function SettingsTab() {
       <Toggle label="Maintenance mode" desc="Disables new review submissions" v={maint} on={async (v) => { setMaint(v); await setMaintenance(v); toast.success(v ? "Maintenance ON" : "OFF"); }} />
       <Toggle label="Redemptions on hold" desc="Disables M-Pesa withdrawals" v={hold} on={async (v) => { setHold(v); await setRedemptionsOnHold(v); toast.success(v ? "On hold" : "Active"); }} />
       <Toggle label="Registration open" desc="Allow new sign-ups" v={regOpen} on={async (v) => { setRegOpen(v); await setRegistrationOpen(v); toast.success(v ? "Open" : "Closed"); }} />
+
+      <div className="glass rounded-2xl p-4">
+        <p className="font-semibold text-sm">Withdrawal settings</p>
+        <p className="text-xs text-muted-foreground mb-3">Minimum amount (KSh) a user can withdraw at once.</p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={100}
+            value={minRedeem}
+            onChange={(e) => setMinRedeem(Number(e.target.value))}
+            className="flex-1 h-11 px-3 rounded-lg bg-input border border-border font-mono"
+          />
+          <button
+            onClick={async () => { await setMinRedemption(minRedeem); toast.success(`Minimum set to KSh ${minRedeem.toLocaleString()}`); }}
+            className="h-11 px-4 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-semibold"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewsTab() {
+  const [items, setItems] = useState<(ReviewSubmission & { product?: Product; profile?: Profile })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setItems(await listPendingReviews());
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, []);
+
+  async function approve(r: ReviewSubmission) {
+    setWorking(r.id);
+    try { await approveReview(r); toast.success("Approved"); await load(); }
+    catch (e: any) { toast.error(e?.message ?? "Could not approve"); }
+    finally { setWorking(null); }
+  }
+  async function reject(r: ReviewSubmission) {
+    const reason = prompt("Reason for rejection?", "Quality not sufficient");
+    if (!reason) return;
+    setWorking(r.id);
+    try { await rejectReview(r, reason); toast.success("Rejected"); await load(); }
+    catch (e: any) { toast.error(e?.message ?? "Could not reject"); }
+    finally { setWorking(null); }
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Pending reviews ({items.length})</h2>
+      {loading ? <Loader2 className="size-6 animate-spin" /> : items.length === 0 ? (
+        <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">No pending reviews.</div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((r) => (
+            <div key={r.id} className="glass rounded-2xl p-4 flex flex-col sm:flex-row gap-4">
+              {r.product?.image_url && (
+                <img src={r.product.image_url} alt="" className="size-20 rounded-lg object-cover shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">{r.product?.name ?? "Unknown product"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {r.profile?.display_name ?? r.profile?.full_name ?? "Unknown user"} · {r.rating}★ · {timeAgo(r.created_at)}
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-gradient-gold shrink-0">+{r.points_reward}</span>
+                </div>
+                <p className="text-sm mt-2 line-clamp-3">{r.review_text}</p>
+                {r.screenshot_url && (
+                  <a href={r.screenshot_url} target="_blank" rel="noreferrer" className="text-xs text-primary mt-1 inline-block">
+                    View screenshot →
+                  </a>
+                )}
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => approve(r)} disabled={working === r.id}
+                    className="h-9 px-3 rounded-lg bg-gradient-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
+                    Approve
+                  </button>
+                  <button onClick={() => reject(r)} disabled={working === r.id}
+                    className="h-9 px-3 rounded-lg bg-destructive/15 text-destructive text-xs font-semibold disabled:opacity-50">
+                    Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
