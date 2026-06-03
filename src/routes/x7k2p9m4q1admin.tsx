@@ -94,6 +94,7 @@ function AdminDashboard() {
             ["payments", "Payment #s", PhoneIcon],
             ["messages", "Broadcast", MessageSquare],
             ["logs", "Security", Activity],
+            ["fraud", "Fraud", AlertTriangle],
             ["settings", "Settings", Settings],
           ] as const).map(([k, label, Icon]) => (
             <button key={k} onClick={() => setTab(k as Tab)}
