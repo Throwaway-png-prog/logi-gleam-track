@@ -106,6 +106,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_training_completions: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json | null
+          reward_ksh: number
+          task_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          reward_ksh: number
+          task_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          reward_ksh?: number
+          task_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_challenges: {
         Row: {
           challenge_key: string
@@ -138,6 +165,30 @@ export type Database = {
           progress?: number
           reward_ksh?: number
           target?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_spins: {
+        Row: {
+          amount_ksh: number
+          created_at: string
+          id: string
+          spin_date: string
+          user_id: string
+        }
+        Insert: {
+          amount_ksh: number
+          created_at?: string
+          id?: string
+          spin_date?: string
+          user_id: string
+        }
+        Update: {
+          amount_ksh?: number
+          created_at?: string
+          id?: string
+          spin_date?: string
           user_id?: string
         }
         Relationships: []
@@ -874,6 +925,7 @@ export type Database = {
           emergency_started_at: string | null
           id: number
           maintenance: boolean
+          min_redemption_ksh: number
           payment_rotation_mode: string
           redemptions_frozen: boolean
           redemptions_on_hold: boolean
@@ -891,6 +943,7 @@ export type Database = {
           emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
+          min_redemption_ksh?: number
           payment_rotation_mode?: string
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
@@ -908,6 +961,7 @@ export type Database = {
           emergency_started_at?: string | null
           id?: number
           maintenance?: boolean
+          min_redemption_ksh?: number
           payment_rotation_mode?: string
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean

@@ -472,12 +472,19 @@ export async function rejectUpgrade(req: UpgradeRequest) {
 }
 
 // --- System settings ---
-export async function getSystemSettings(): Promise<{ maintenance: boolean; redemptions_on_hold: boolean }> {
-  const { data } = await supabase.from("system_settings").select("maintenance, redemptions_on_hold" as any).eq("id", 1).maybeSingle();
+export async function getSystemSettings(): Promise<{ maintenance: boolean; redemptions_on_hold: boolean; min_redemption_ksh: number }> {
+  const { data } = await supabase.from("system_settings").select("maintenance, redemptions_on_hold, min_redemption_ksh" as any).eq("id", 1).maybeSingle();
   return {
     maintenance: Boolean((data as any)?.maintenance),
     redemptions_on_hold: Boolean((data as any)?.redemptions_on_hold),
+    min_redemption_ksh: Number((data as any)?.min_redemption_ksh ?? 1000),
   };
+}
+export async function setMinRedemption(amount: number) {
+  await supabase.from("system_settings").upsert({ id: 1, min_redemption_ksh: amount, updated_at: new Date().toISOString() } as any);
+}
+export async function softDeleteProduct(id: string) {
+  await supabase.from("products" as any).update({ active: false } as any).eq("id", id);
 }
 export async function getMaintenance(): Promise<boolean> {
   const { data } = await supabase.from("system_settings").select("maintenance").eq("id", 1).maybeSingle();
@@ -537,11 +544,11 @@ export function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// --- Products with rotation (exclude already reviewed) ---
+// --- Products with rotation (exclude pending + APPROVED permanently; rejected can reappear) ---
 export async function listAvailableProducts(userId: string): Promise<Product[]> {
   const [allRes, revRes] = await Promise.all([
     supabase.from("products" as any).select("*").eq("active", true).order("created_at", { ascending: true }),
-    supabase.from("review_submissions" as any).select("product_id, status").eq("user_id", userId).neq("status", "rejected"),
+    supabase.from("review_submissions" as any).select("product_id, status").eq("user_id", userId).in("status", ["pending", "approved"]),
   ]);
   const all = (allRes.data as unknown as Product[]) ?? [];
   const seen = new Set(((revRes.data as unknown as { product_id: string }[]) ?? []).map((r) => r.product_id));

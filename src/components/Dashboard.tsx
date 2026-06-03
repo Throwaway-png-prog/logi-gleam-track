@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Crown, ArrowUpRight, Wrench, Wallet, ShoppingBag, Sparkles, ChevronRight,
-  Star, UserCircle2, LogOut, Flame,
+  Star, UserCircle2, LogOut, Flame, Gift, Brain, Check,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { AppShell } from "./AppShell";
 import { AnimatedCounter } from "./AnimatedCounter";
+import { SpinModal } from "./SpinModal";
+import { getTodaysSpin } from "@/lib/spin";
 import {
   loadProfile, getMaintenance, setSessionId, listAvailableProducts, myReviews,
   earningsBetween, myTransactions, todaysReviewCount, greetingFor,
@@ -32,6 +34,9 @@ export function Dashboard({ user, setUser, onLogout }: {
   const [recent, setRecent] = useState<PointsTx[]>([]);
   const [myRev, setMyRev] = useState<(ReviewSubmission & { product?: Product })[]>([]);
   const [now, setNow] = useState(new Date());
+  const [shuffleSeed, setShuffleSeed] = useState(() => Math.random());
+  const [spunToday, setSpunToday] = useState<boolean | null>(null);
+  const [spinOpen, setSpinOpen] = useState(false);
 
   const tier = useMemo(() => getTier(user.tier), [user.tier]);
   const nextTier = getNextTier(tier.name);
@@ -42,7 +47,7 @@ export function Dashboard({ user, setUser, onLogout }: {
   async function refresh() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const weekAgo = new Date(Date.now() - 7 * 86400 * 1000);
-    const [fresh, prods, maint, te, we, rc, txs, rev] = await Promise.all([
+    const [fresh, prods, maint, te, we, rc, txs, rev, spin] = await Promise.all([
       loadProfile(user.id),
       listAvailableProducts(user.id),
       getMaintenance(),
@@ -51,16 +56,29 @@ export function Dashboard({ user, setUser, onLogout }: {
       todaysReviewCount(user.id),
       myTransactions(user.id, 8),
       myReviews(user.id, 5),
+      getTodaysSpin(user.id),
     ]);
     if (fresh) setUser(fresh);
     setProducts(prods); setMaint(maint);
     setTodayEarn(te); setWeekEarn(we);
     setTodayReviews(rc); setRecent(txs); setMyRev(rev);
+    setSpunToday(!!spin);
+    setShuffleSeed(Math.random()); // reshuffle every refresh
     setLoading(false);
   }
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
 
-  const featured = [...products].sort((a, b) => b.points_reward - a.points_reward).slice(0, 5);
+  const featured = useMemo(() => {
+    // Shuffle products deterministically with shuffleSeed
+    const arr = [...products];
+    let s = shuffleSeed;
+    for (let i = arr.length - 1; i > 0; i--) {
+      s = (s * 9301 + 49297) % 233280;
+      const j = Math.floor((s / 233280) * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, 5);
+  }, [products, shuffleSeed]);
   const goalPct = Math.min(100, (todayReviews / DAILY_GOAL) * 100);
 
   return (
@@ -153,11 +171,35 @@ export function Dashboard({ user, setUser, onLogout }: {
           </p>
         </motion.div>
 
+        {/* Daily Spin */}
+        <motion.button
+          onClick={() => setSpinOpen(true)}
+          whileTap={{ scale: 0.98 }}
+          className="w-full mb-5 rounded-2xl p-4 bg-gradient-gold text-gold-foreground font-bold shadow-gold flex items-center justify-between"
+        >
+          <span className="flex items-center gap-3">
+            <span className="size-10 rounded-xl bg-black/15 flex items-center justify-center">
+              <Gift className="size-5" />
+            </span>
+            <span className="text-left">
+              <span className="block text-base">Daily Spin</span>
+              <span className="block text-xs opacity-80">
+                {spunToday ? "Already spun today — come back tomorrow" : "Spin once a day for instant KSh"}
+              </span>
+            </span>
+          </span>
+          <ChevronRight className="size-5" />
+        </motion.button>
+
         {/* Quick actions */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
           <Link to="/products" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center"><ShoppingBag className="size-5 text-primary" /></div>
             <p className="text-xs font-semibold">Reviews</p>
+          </Link>
+          <Link to="/ai-training" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
+            <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center"><Brain className="size-5 text-primary" /></div>
+            <p className="text-xs font-semibold">AI Hub</p>
           </Link>
           <Link to="/redeem" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-gold/20 flex items-center justify-center"><Wallet className="size-5 text-gold" /></div>
@@ -225,23 +267,40 @@ export function Dashboard({ user, setUser, onLogout }: {
           ))}
         </div>
 
-        {/* Upgrade nudge */}
+        {/* Next tier — rich card (mirrors VIP upgrade) */}
         {nextTier && (
-          <Link to="/upgrade"
-            className="flex items-center justify-between rounded-2xl p-4 glass border border-gold/30 active:scale-[0.99] transition mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="size-10 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold shrink-0">
-                <Crown className="size-5 text-gold-foreground" />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl p-5 glass border border-gold/30 relative overflow-hidden mb-4"
+          >
+            <div className="absolute -top-10 -right-10 size-40 rounded-full bg-gradient-gold opacity-20 blur-2xl" />
+            <div className="flex items-center justify-between mb-3 relative">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
+                  <Crown className="size-5 text-gold-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-gold">Next tier</p>
+                  <p className="text-lg font-bold text-gradient-gold">{nextTier.name}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs uppercase tracking-wider text-gold">Next tier</p>
-                <p className="text-sm font-semibold truncate">
-                  Unlock <span className="text-gradient-gold">{nextTier.name}</span> for {formatKsh(nextTier.priceKsh ?? 0)}
-                </p>
-              </div>
+              <p className="text-sm font-bold text-gold">{formatKsh(nextTier.priceKsh ?? 0)}</p>
             </div>
-            <ChevronRight className="size-5 text-gold" />
-          </Link>
+            <ul className="space-y-1.5 mb-4 relative">
+              {(nextTier.perks ?? []).map((perk) => (
+                <li key={perk} className="text-sm flex items-start gap-2">
+                  <Check className="size-4 text-primary mt-0.5 shrink-0" />
+                  <span>{perk}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/upgrade"
+              className="w-full h-12 rounded-xl bg-gradient-gold text-gold-foreground font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition relative"
+            >
+              Upgrade to {nextTier.name} <ChevronRight className="size-4" />
+            </Link>
+          </motion.div>
         )}
 
         <button
@@ -251,6 +310,17 @@ export function Dashboard({ user, setUser, onLogout }: {
           <LogOut className="size-4" /> Sign out
         </button>
       </div>
+
+      <SpinModal
+        userId={user.id}
+        open={spinOpen}
+        onClose={() => setSpinOpen(false)}
+        onAwarded={(amount, newBalance) => {
+          setUser({ ...user, points: newBalance });
+          setSpunToday(true);
+          refresh();
+        }}
+      />
     </AppShell>
   );
 }

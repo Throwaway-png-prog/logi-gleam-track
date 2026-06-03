@@ -3,12 +3,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import {
-  Copy, Check, Sun, Moon, ShieldCheck, Award, Loader2, Trophy, Wallet, Flame, Camera, BookOpen, Share2, Users,
+  Copy, Check, Sun, Moon, ShieldCheck, Award, Loader2, Trophy, Wallet, Flame, Camera, BookOpen, Share2, Users, Gift,
 } from "lucide-react";
 import {
   getSessionId, loadProfile, updateProfile, myRedemptions, uploadAvatar,
   myReferrals, type Profile, type RedemptionRequest, type ReferralRow,
 } from "@/lib/api";
+import { listRecentSpins, type SpinRecord } from "@/lib/spin";
 import { formatKsh, formatPhoneKE, initialsOf, maskPhone, timeAgo } from "@/lib/format";
 import { getTier, getNextTier } from "@/lib/tiers";
 import { AppShell } from "@/components/AppShell";
@@ -39,13 +40,14 @@ function ProfilePage() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [reds, setReds] = useState<RedemptionRequest[]>([]);
   const [refs, setRefs] = useState<ReferralRow[]>([]);
+  const [spins, setSpins] = useState<SpinRecord[]>([]);
   const [showGuidelines, setShowGuidelines] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const sid = getSessionId();
     if (!sid) { navigate({ to: "/app" }); return; }
-    Promise.all([loadProfile(sid), myRedemptions(sid), myReferrals(sid)]).then(([u, r, rf]) => {
+    Promise.all([loadProfile(sid), myRedemptions(sid), myReferrals(sid), listRecentSpins(sid, 7)]).then(([u, r, rf, sp]) => {
       if (u) {
         setUser(u);
         setDisplayName(u.display_name || "");
@@ -55,6 +57,7 @@ function ProfilePage() {
       }
       setReds(r.slice(0, 5));
       setRefs(rf);
+      setSpins(sp);
       setLoading(false);
     });
   }, [navigate]);
@@ -301,6 +304,24 @@ function ProfilePage() {
                     <p className="text-xs capitalize">{r.status}</p>
                     <p className="text-[10px] text-muted-foreground">{timeAgo(r.created_at)}</p>
                   </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Daily Spin history">
+          {spins.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No spins yet — try the Daily Spin on your dashboard.</p>
+          ) : (
+            <ul className="space-y-2">
+              {spins.map((s) => (
+                <li key={s.id} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <Gift className="size-4 text-gold" />
+                    <span>{new Date(s.spin_date).toLocaleDateString()}</span>
+                  </div>
+                  <span className="font-bold text-gradient-gold">+{formatKsh(Number(s.amount_ksh))}</span>
                 </li>
               ))}
             </ul>
