@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ShoppingBag, Wallet, Crown, History, X, Home, Newspaper } from "lucide-react";
+import { Bell, ShoppingBag, Wallet, Crown, History, X, Home, Brain } from "lucide-react";
 import {
   listMessagesFor, getReadMessageIds, markMessageRead, setSessionId,
   type Profile, type Message,
@@ -15,6 +15,7 @@ const NAV = [
   { to: "/app", label: "Home", icon: Home },
   { to: "/products", label: "Earn", icon: ShoppingBag },
   { to: "/vip", label: "VIP", icon: Crown },
+  { to: "/ai-training", label: "AI", icon: Brain },
   { to: "/redeem", label: "Wallet", icon: Wallet },
   { to: "/profile", label: "Me", icon: History },
 ] as const;
@@ -86,7 +87,7 @@ export function AppShell({ user, children }: { user: Profile; children: React.Re
       <main className="pb-24 md:pb-8">{children}</main>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl bg-background/85 border-t border-border/50 pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-6 h-16">
           {NAV.map((n) => {
             const active = location.pathname === n.to || (n.to !== "/app" && location.pathname.startsWith(n.to));
             return (
