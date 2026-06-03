@@ -114,6 +114,7 @@ function AdminDashboard() {
         {tab === "payments" && <PaymentsTab />}
         {tab === "messages" && <MessagesTab />}
         {tab === "logs" && <SecurityTab />}
+        {tab === "fraud" && <FraudTab />}
         {tab === "settings" && <SettingsTab />}
       </main>
     </div>
