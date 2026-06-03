@@ -171,11 +171,35 @@ export function Dashboard({ user, setUser, onLogout }: {
           </p>
         </motion.div>
 
+        {/* Daily Spin */}
+        <motion.button
+          onClick={() => setSpinOpen(true)}
+          whileTap={{ scale: 0.98 }}
+          className="w-full mb-5 rounded-2xl p-4 bg-gradient-gold text-gold-foreground font-bold shadow-gold flex items-center justify-between"
+        >
+          <span className="flex items-center gap-3">
+            <span className="size-10 rounded-xl bg-black/15 flex items-center justify-center">
+              <Gift className="size-5" />
+            </span>
+            <span className="text-left">
+              <span className="block text-base">Daily Spin</span>
+              <span className="block text-xs opacity-80">
+                {spunToday ? "Already spun today — come back tomorrow" : "Spin once a day for instant KSh"}
+              </span>
+            </span>
+          </span>
+          <ChevronRight className="size-5" />
+        </motion.button>
+
         {/* Quick actions */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
           <Link to="/products" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center"><ShoppingBag className="size-5 text-primary" /></div>
             <p className="text-xs font-semibold">Reviews</p>
+          </Link>
+          <Link to="/ai-training" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
+            <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center"><Brain className="size-5 text-primary" /></div>
+            <p className="text-xs font-semibold">AI Hub</p>
           </Link>
           <Link to="/redeem" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-gold/20 flex items-center justify-center"><Wallet className="size-5 text-gold" /></div>
