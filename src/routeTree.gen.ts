@@ -20,6 +20,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as AiTrainingRouteImport } from './routes/ai-training'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as JoinCodeRouteImport } from './routes/join.$code'
@@ -79,6 +80,11 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiTrainingRoute = AiTrainingRouteImport.update({
+  id: '/ai-training',
+  path: '/ai-training',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -97,6 +103,7 @@ const JoinCodeRoute = JoinCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-training': typeof AiTrainingRoute
   '/app': typeof AppRoute
   '/news': typeof NewsRoute
   '/onboarding': typeof OnboardingRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-training': typeof AiTrainingRoute
   '/app': typeof AppRoute
   '/news': typeof NewsRoute
   '/onboarding': typeof OnboardingRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai-training': typeof AiTrainingRoute
   '/app': typeof AppRoute
   '/news': typeof NewsRoute
   '/onboarding': typeof OnboardingRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ai-training'
     | '/app'
     | '/news'
     | '/onboarding'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ai-training'
     | '/app'
     | '/news'
     | '/onboarding'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/ai-training'
     | '/app'
     | '/news'
     | '/onboarding'
@@ -197,6 +209,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiTrainingRoute: typeof AiTrainingRoute
   AppRoute: typeof AppRoute
   NewsRoute: typeof NewsRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai-training': {
+      id: '/ai-training'
+      path: '/ai-training'
+      fullPath: '/ai-training'
+      preLoaderRoute: typeof AiTrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -328,6 +348,7 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiTrainingRoute: AiTrainingRoute,
   AppRoute: AppRoute,
   NewsRoute: NewsRoute,
   OnboardingRoute: OnboardingRoute,
