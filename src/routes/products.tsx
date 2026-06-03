@@ -26,6 +26,7 @@ function ProductsPage() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [showGuidelines, setShowGuidelines] = useState(false);
   const [pending, setPending] = useState<Product | null>(null);
+  const [shuffleSalt, setShuffleSalt] = useState(0);
 
   async function load() {
     const sid = getSessionId();
