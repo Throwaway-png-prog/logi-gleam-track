@@ -20,6 +20,7 @@ function RedeemPage() {
   const [user, setUser] = useState<Profile | null>(null);
   const [history, setHistory] = useState<RedemptionRequest[]>([]);
   const [onHold, setOnHold] = useState(false);
+  const [minAmount, setMinAmount] = useState<number>(1000);
   const [amount, setAmount] = useState<number>(0);
   const [custom, setCustom] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,7 @@ function RedeemPage() {
     if (p) setUser(p);
     setHistory(h);
     setOnHold(s.redemptions_on_hold);
+    setMinAmount(s.min_redemption_ksh);
   }
 
   useEffect(() => {
@@ -51,7 +53,7 @@ function RedeemPage() {
     return amount;
   }, [amount, custom]);
 
-  const valid = user && finalAmount >= 1000 && finalAmount <= user.points && !onHold;
+  const valid = user && finalAmount >= minAmount && finalAmount <= user.points && !onHold;
 
   async function submit() {
     if (!user || !valid) return;
@@ -149,7 +151,7 @@ function RedeemPage() {
         </div>
 
         <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
-          Or custom amount (min 1,000)
+          Or custom amount (min {minAmount.toLocaleString()})
         </label>
         <div className="relative">
           <input
