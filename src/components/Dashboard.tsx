@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Crown, ArrowUpRight, Wrench, Wallet, ShoppingBag, Sparkles, ChevronRight,
-  Star, UserCircle2, LogOut, Flame,
+  Star, UserCircle2, LogOut, Flame, Gift, Brain, Check,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { AppShell } from "./AppShell";
 import { AnimatedCounter } from "./AnimatedCounter";
+import { SpinModal } from "./SpinModal";
+import { getTodaysSpin } from "@/lib/spin";
 import {
   loadProfile, getMaintenance, setSessionId, listAvailableProducts, myReviews,
   earningsBetween, myTransactions, todaysReviewCount, greetingFor,
