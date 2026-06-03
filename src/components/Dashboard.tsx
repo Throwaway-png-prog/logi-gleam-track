@@ -267,23 +267,40 @@ export function Dashboard({ user, setUser, onLogout }: {
           ))}
         </div>
 
-        {/* Upgrade nudge */}
+        {/* Next tier — rich card (mirrors VIP upgrade) */}
         {nextTier && (
-          <Link to="/upgrade"
-            className="flex items-center justify-between rounded-2xl p-4 glass border border-gold/30 active:scale-[0.99] transition mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="size-10 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold shrink-0">
-                <Crown className="size-5 text-gold-foreground" />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl p-5 glass border border-gold/30 relative overflow-hidden mb-4"
+          >
+            <div className="absolute -top-10 -right-10 size-40 rounded-full bg-gradient-gold opacity-20 blur-2xl" />
+            <div className="flex items-center justify-between mb-3 relative">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
+                  <Crown className="size-5 text-gold-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-gold">Next tier</p>
+                  <p className="text-lg font-bold text-gradient-gold">{nextTier.name}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs uppercase tracking-wider text-gold">Next tier</p>
-                <p className="text-sm font-semibold truncate">
-                  Unlock <span className="text-gradient-gold">{nextTier.name}</span> for {formatKsh(nextTier.priceKsh ?? 0)}
-                </p>
-              </div>
+              <p className="text-sm font-bold text-gold">{formatKsh(nextTier.priceKsh ?? 0)}</p>
             </div>
-            <ChevronRight className="size-5 text-gold" />
-          </Link>
+            <ul className="space-y-1.5 mb-4 relative">
+              {(nextTier.perks ?? []).map((perk) => (
+                <li key={perk} className="text-sm flex items-start gap-2">
+                  <Check className="size-4 text-primary mt-0.5 shrink-0" />
+                  <span>{perk}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/upgrade"
+              className="w-full h-12 rounded-xl bg-gradient-gold text-gold-foreground font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition relative"
+            >
+              Upgrade to {nextTier.name} <ChevronRight className="size-4" />
+            </Link>
+          </motion.div>
         )}
 
         <button
@@ -293,6 +310,17 @@ export function Dashboard({ user, setUser, onLogout }: {
           <LogOut className="size-4" /> Sign out
         </button>
       </div>
+
+      <SpinModal
+        userId={user.id}
+        open={spinOpen}
+        onClose={() => setSpinOpen(false)}
+        onAwarded={(amount, newBalance) => {
+          setUser({ ...user, points: newBalance });
+          setSpunToday(true);
+          refresh();
+        }}
+      />
     </AppShell>
   );
 }
