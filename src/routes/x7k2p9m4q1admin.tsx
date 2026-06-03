@@ -68,7 +68,7 @@ function AdminPanel() {
   return <AdminDashboard />;
 }
 
-type Tab = "analytics" | "users" | "products" | "news" | "payments" | "messages" | "logs" | "settings";
+type Tab = "analytics" | "users" | "products" | "news" | "payments" | "messages" | "logs" | "fraud" | "settings";
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("analytics");
