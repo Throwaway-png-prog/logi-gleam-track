@@ -11,7 +11,9 @@ import {
 import {
   listProfiles, adminUpsertProduct, sendMessage, getSystemSettings, setMaintenance, setRedemptionsOnHold,
   setRegistrationOpen, getRegistrationOpen, listProducts, startEmergency, stopEmergency,
-  type Profile, type Product,
+  softDeleteProduct, setMinRedemption,
+  listPendingReviews, approveReview, rejectReview,
+  type Profile, type Product, type ReviewSubmission,
 } from "@/lib/api";
 import {
   getDailyAnalytics, listAdminActions, listLoginAttempts, listPaymentNumbers, addPaymentNumber,
@@ -68,7 +70,7 @@ function AdminPanel() {
   return <AdminDashboard />;
 }
 
-type Tab = "analytics" | "users" | "products" | "news" | "payments" | "messages" | "logs" | "fraud" | "settings";
+type Tab = "analytics" | "users" | "products" | "reviews" | "news" | "payments" | "messages" | "logs" | "fraud" | "settings";
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("analytics");
@@ -90,6 +92,7 @@ function AdminDashboard() {
             ["analytics", "Analytics", Coins],
             ["users", "Users", Users],
             ["products", "Products", Package],
+            ["reviews", "Reviews", MessageSquare],
             ["news", "News", Newspaper],
             ["payments", "Payment #s", PhoneIcon],
             ["messages", "Broadcast", MessageSquare],
@@ -110,6 +113,7 @@ function AdminDashboard() {
         {tab === "analytics" && <AnalyticsTab />}
         {tab === "users" && <UsersTab />}
         {tab === "products" && <ProductsTab />}
+        {tab === "reviews" && <ReviewsTab />}
         {tab === "news" && <NewsTab />}
         {tab === "payments" && <PaymentsTab />}
         {tab === "messages" && <MessagesTab />}
