@@ -34,6 +34,9 @@ export function Dashboard({ user, setUser, onLogout }: {
   const [recent, setRecent] = useState<PointsTx[]>([]);
   const [myRev, setMyRev] = useState<(ReviewSubmission & { product?: Product })[]>([]);
   const [now, setNow] = useState(new Date());
+  const [shuffleSeed, setShuffleSeed] = useState(() => Math.random());
+  const [spunToday, setSpunToday] = useState<boolean | null>(null);
+  const [spinOpen, setSpinOpen] = useState(false);
 
   const tier = useMemo(() => getTier(user.tier), [user.tier]);
   const nextTier = getNextTier(tier.name);
@@ -44,7 +47,7 @@ export function Dashboard({ user, setUser, onLogout }: {
   async function refresh() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const weekAgo = new Date(Date.now() - 7 * 86400 * 1000);
-    const [fresh, prods, maint, te, we, rc, txs, rev] = await Promise.all([
+    const [fresh, prods, maint, te, we, rc, txs, rev, spin] = await Promise.all([
       loadProfile(user.id),
       listAvailableProducts(user.id),
       getMaintenance(),
@@ -53,16 +56,29 @@ export function Dashboard({ user, setUser, onLogout }: {
       todaysReviewCount(user.id),
       myTransactions(user.id, 8),
       myReviews(user.id, 5),
+      getTodaysSpin(user.id),
     ]);
     if (fresh) setUser(fresh);
     setProducts(prods); setMaint(maint);
     setTodayEarn(te); setWeekEarn(we);
     setTodayReviews(rc); setRecent(txs); setMyRev(rev);
+    setSpunToday(!!spin);
+    setShuffleSeed(Math.random()); // reshuffle every refresh
     setLoading(false);
   }
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
 
-  const featured = [...products].sort((a, b) => b.points_reward - a.points_reward).slice(0, 5);
+  const featured = useMemo(() => {
+    // Shuffle products deterministically with shuffleSeed
+    const arr = [...products];
+    let s = shuffleSeed;
+    for (let i = arr.length - 1; i > 0; i--) {
+      s = (s * 9301 + 49297) % 233280;
+      const j = Math.floor((s / 233280) * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, 5);
+  }, [products, shuffleSeed]);
   const goalPct = Math.min(100, (todayReviews / DAILY_GOAL) * 100);
 
   return (
