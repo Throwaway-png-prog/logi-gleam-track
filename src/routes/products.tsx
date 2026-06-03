@@ -44,10 +44,13 @@ function ProductsPage() {
     setSelected(p);
   }
 
-  const filtered = useMemo(() => products.filter((p) =>
-    (cat === "All" || p.category === cat) &&
-    (q === "" || p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase()))
-  ), [products, cat, q]);
+  const filtered = useMemo(() => {
+    const base = products.filter((p) =>
+      (cat === "All" || p.category === cat) &&
+      (q === "" || p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase()))
+    );
+    return user ? shuffleForUser(base, user.id, shuffleSalt) : base;
+  }, [products, cat, q, user, shuffleSalt]);
 
   if (!user) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>;
 
