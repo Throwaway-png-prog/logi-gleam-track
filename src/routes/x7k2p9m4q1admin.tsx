@@ -19,6 +19,7 @@ import {
   adminAdjustBalance, adminForceTier, adminSoftDelete, getUserDetail, listAllNews, upsertNews,
   rowsToCSV, downloadCSV, type PaymentNumber,
 } from "@/lib/admin";
+import { listFraudFlags, clearFraudFlag, resetFraudScore } from "@/lib/security";
 import { TIERS } from "@/lib/tiers";
 import { formatKsh, timeAgo } from "@/lib/format";
 import { toast } from "sonner";
@@ -67,7 +68,7 @@ function AdminPanel() {
   return <AdminDashboard />;
 }
 
-type Tab = "analytics" | "users" | "products" | "news" | "payments" | "messages" | "logs" | "settings";
+type Tab = "analytics" | "users" | "products" | "news" | "payments" | "messages" | "logs" | "fraud" | "settings";
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("analytics");
@@ -93,6 +94,7 @@ function AdminDashboard() {
             ["payments", "Payment #s", PhoneIcon],
             ["messages", "Broadcast", MessageSquare],
             ["logs", "Security", Activity],
+            ["fraud", "Fraud", AlertTriangle],
             ["settings", "Settings", Settings],
           ] as const).map(([k, label, Icon]) => (
             <button key={k} onClick={() => setTab(k as Tab)}
@@ -112,6 +114,7 @@ function AdminDashboard() {
         {tab === "payments" && <PaymentsTab />}
         {tab === "messages" && <MessagesTab />}
         {tab === "logs" && <SecurityTab />}
+        {tab === "fraud" && <FraudTab />}
         {tab === "settings" && <SettingsTab />}
       </main>
     </div>
@@ -721,6 +724,65 @@ function SettingsTab() {
       <Toggle label="Maintenance mode" desc="Disables new review submissions" v={maint} on={async (v) => { setMaint(v); await setMaintenance(v); toast.success(v ? "Maintenance ON" : "OFF"); }} />
       <Toggle label="Redemptions on hold" desc="Disables M-Pesa withdrawals" v={hold} on={async (v) => { setHold(v); await setRedemptionsOnHold(v); toast.success(v ? "On hold" : "Active"); }} />
       <Toggle label="Registration open" desc="Allow new sign-ups" v={regOpen} on={async (v) => { setRegOpen(v); await setRegistrationOpen(v); toast.success(v ? "Open" : "Closed"); }} />
+    </div>
+  );
+}
+
+function FraudTab() {
+  const [flags, setFlags] = useState<any[]>([]);
+  const [status, setStatus] = useState<"open" | "resolved" | "all">("open");
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    setFlags(await listFraudFlags(status));
+    setLoading(false);
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [status]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-2xl font-bold">Fraud detection</h2>
+        <div className="flex gap-2">
+          {(["open", "resolved", "all"] as const).map((s) => (
+            <button key={s} onClick={() => setStatus(s)}
+              className={`px-3 h-9 rounded-full text-xs font-semibold ${status === s ? "bg-gradient-primary text-primary-foreground" : "glass text-muted-foreground"}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Rule-based detection: duplicate M-Pesa codes, shared device fingerprints, format violations. Users auto-block at score &gt; 90.
+      </p>
+      {loading ? <Loader2 className="size-6 animate-spin" /> : flags.length === 0 ? (
+        <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">No {status} flags.</div>
+      ) : (
+        <div className="space-y-2">
+          {flags.map((f) => (
+            <div key={f.id} className="glass rounded-2xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{f.kind} <span className="text-xs text-gold">+{f.score_delta}</span></p>
+                  <p className="text-xs text-muted-foreground font-mono truncate">user: {f.user_id}</p>
+                  <p className="text-xs text-muted-foreground">{timeAgo(f.created_at)}</p>
+                </div>
+                <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full ${f.status === "open" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>{f.status}</span>
+              </div>
+              <pre className="mt-2 text-[11px] bg-muted/30 rounded-lg p-2 overflow-x-auto">{JSON.stringify(f.evidence, null, 2)}</pre>
+              {f.status === "open" && (
+                <div className="mt-3 flex gap-2">
+                  <button onClick={async () => { await clearFraudFlag(f.id); toast.success("Flag resolved"); load(); }}
+                    className="px-3 h-8 rounded-lg glass text-xs font-semibold">Resolve</button>
+                  <button onClick={async () => { await resetFraudScore(f.user_id); toast.success("User fraud score reset"); load(); }}
+                    className="px-3 h-8 rounded-lg bg-gradient-primary text-primary-foreground text-xs font-semibold">Reset user score</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

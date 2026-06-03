@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Loader2, Star, X, Sparkles, BookOpen } from "lucide-react";
+import { Search, Loader2, Star, X, Sparkles, BookOpen, RefreshCw } from "lucide-react";
 import { listAvailableProducts, getSessionId, loadProfile, type Product, type Profile } from "@/lib/api";
 import { formatKsh } from "@/lib/format";
+import { shuffleForUser } from "@/lib/security";
 import { AppShell } from "@/components/AppShell";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewGuidelinesModal, hasAckedGuidelines } from "@/components/ReviewGuidelinesModal";
@@ -25,6 +26,7 @@ function ProductsPage() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [showGuidelines, setShowGuidelines] = useState(false);
   const [pending, setPending] = useState<Product | null>(null);
+  const [shuffleSalt, setShuffleSalt] = useState(0);
 
   async function load() {
     const sid = getSessionId();
@@ -42,10 +44,13 @@ function ProductsPage() {
     setSelected(p);
   }
 
-  const filtered = useMemo(() => products.filter((p) =>
-    (cat === "All" || p.category === cat) &&
-    (q === "" || p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase()))
-  ), [products, cat, q]);
+  const filtered = useMemo(() => {
+    const base = products.filter((p) =>
+      (cat === "All" || p.category === cat) &&
+      (q === "" || p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase()))
+    );
+    return user ? shuffleForUser(base, user.id, shuffleSalt) : base;
+  }, [products, cat, q, user, shuffleSalt]);
 
   if (!user) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>;
 
@@ -58,10 +63,16 @@ function ProductsPage() {
           <p className="text-sm text-gold flex items-center gap-1.5 mt-1">
             <Sparkles className="size-3.5" /> {products.length} new products available
           </p>
-          <button onClick={() => setShowGuidelines(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass border border-gold/40 text-xs font-semibold text-gold">
-            <BookOpen className="size-3.5" /> Review Guidelines
-          </button>
+          <div className="mt-3 flex items-center gap-2">
+            <button onClick={() => setShowGuidelines(true)}
+              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass border border-gold/40 text-xs font-semibold text-gold">
+              <BookOpen className="size-3.5" /> Review Guidelines
+            </button>
+            <button onClick={() => setShuffleSalt((s) => s + 1)}
+              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass text-xs font-semibold text-muted-foreground hover:text-foreground">
+              <RefreshCw className="size-3.5" /> Shuffle
+            </button>
+          </div>
         </div>
 
         <div className="relative mb-4">
