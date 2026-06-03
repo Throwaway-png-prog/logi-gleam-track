@@ -63,10 +63,16 @@ function ProductsPage() {
           <p className="text-sm text-gold flex items-center gap-1.5 mt-1">
             <Sparkles className="size-3.5" /> {products.length} new products available
           </p>
-          <button onClick={() => setShowGuidelines(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass border border-gold/40 text-xs font-semibold text-gold">
-            <BookOpen className="size-3.5" /> Review Guidelines
-          </button>
+          <div className="mt-3 flex items-center gap-2">
+            <button onClick={() => setShowGuidelines(true)}
+              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass border border-gold/40 text-xs font-semibold text-gold">
+              <BookOpen className="size-3.5" /> Review Guidelines
+            </button>
+            <button onClick={() => setShuffleSalt((s) => s + 1)}
+              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass text-xs font-semibold text-muted-foreground hover:text-foreground">
+              <RefreshCw className="size-3.5" /> Shuffle
+            </button>
+          </div>
         </div>
 
         <div className="relative mb-4">
