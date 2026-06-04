@@ -116,6 +116,7 @@ function AdminDashboard() {
         {tab === "users" && <UsersTab />}
         {tab === "products" && <ProductsTab />}
         {tab === "reviews" && <ReviewsTab />}
+        {tab === "redemptions" && <RedemptionsTab />}
         {tab === "news" && <NewsTab />}
         {tab === "payments" && <PaymentsTab />}
         {tab === "messages" && <MessagesTab />}
