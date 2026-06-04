@@ -261,6 +261,12 @@ function RedeemPage() {
         )}
       </section>
     </div>
+    <EmailVerifyModal
+      user={user}
+      open={showVerify}
+      onClose={() => setShowVerify(false)}
+      onVerified={async () => { const fresh = await loadProfile(user.id); if (fresh) setUser(fresh); }}
+    />
     </AppShell>
   );
 }
