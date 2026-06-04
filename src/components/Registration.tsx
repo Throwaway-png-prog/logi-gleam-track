@@ -203,7 +203,26 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
                   className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-              <button disabled={displayName.trim().length < 3} onClick={() => setStep("pin")}
+              <button disabled={displayName.trim().length < 3} onClick={() => setStep("email")}
+                className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 active:scale-[0.98] transition">
+                Continue
+              </button>
+            </motion.div>
+          )}
+
+          {step === "email" && (
+            <motion.div key="email" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">Step 4 of 6</label>
+              <h2 className="text-xl font-semibold mt-1 mb-1">Your email address</h2>
+              <p className="text-sm text-muted-foreground mb-5">Required for withdrawals. We'll verify it later.</p>
+              <div className="relative">
+                <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+                <input type="email" placeholder="you@example.com"
+                  value={email} onChange={(e) => setEmail(e.target.value.trim())}
+                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <button disabled={!/^\S+@\S+\.\S+$/.test(email)} onClick={() => setStep("pin")}
                 className="mt-6 w-full h-14 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow disabled:opacity-40 active:scale-[0.98] transition">
                 Continue
               </button>
