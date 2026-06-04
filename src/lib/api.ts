@@ -182,7 +182,7 @@ export async function registerProfile(
   pin: string,
   full_name: string,
   display_name: string,
-  opts?: { referred_by?: string | null; terms_accepted?: boolean },
+  opts?: { referred_by?: string | null; terms_accepted?: boolean; email?: string | null },
 ): Promise<Profile> {
   for (let i = 0; i < 5; i++) {
     const worker_id = genWorkerId();
@@ -194,16 +194,15 @@ export async function registerProfile(
         tier: "Starter", points: 0, units_today: 0, last_reset_date: todayStr(),
         display_name, referral_code,
         referred_by: opts?.referred_by ?? null,
+        email: opts?.email ?? null,
+        email_verified: false,
         terms_accepted_at: opts?.terms_accepted ? new Date().toISOString() : null,
       } as any)
       .select().single();
     if (!error && data) {
-      const p = data as Profile;
-      // Credit referrer immediately on signup
-      if (p.referred_by) {
-        creditReferrerOnSignup(p.id, p.referred_by).catch(() => {});
-      }
-      return p;
+      // NOTE: referral bonuses are now paid on referee's FIRST UPGRADE,
+      // not on signup. See payReferralOnFirstUpgrade().
+      return data as Profile;
     }
     if (error && !error.message.includes("worker_id")) throw error;
   }
