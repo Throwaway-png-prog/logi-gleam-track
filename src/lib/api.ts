@@ -46,6 +46,9 @@ export interface Profile {
   blocked?: boolean;
   blocked_reason?: string | null;
   warnings?: number;
+  email?: string | null;
+  email_verified?: boolean;
+  first_upgrade_completed?: boolean;
 }
 
 export interface EmergencyState {
