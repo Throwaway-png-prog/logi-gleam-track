@@ -468,11 +468,13 @@ export async function approveUpgrade(req: UpgradeRequest) {
   const p = prof as Profile;
   const newTier = getTier(req.requested_tier);
   const welcome = newTier.welcomeBonus ?? 0;
+  const wasFirstUpgrade = !p.first_upgrade_completed;
   await supabase.from("profiles").update({
     tier: req.requested_tier,
     jobs_in_tier: 0,
     points: p.points + welcome,
     lifetime_earned: Number(p.lifetime_earned ?? 0) + welcome,
+    first_upgrade_completed: true,
   } as any).eq("id", p.id);
   await supabase.from("tier_upgrades" as any).insert({
     user_id: p.id, from_tier: p.tier, to_tier: req.requested_tier,
@@ -488,6 +490,10 @@ export async function approveUpgrade(req: UpgradeRequest) {
     body: `Your tier upgrade is approved. ${newTier.perks.join(" · ")}`,
     audience: "user", audience_value: p.id,
   } as any);
+  // Pay referral bonuses ONLY on referee's first upgrade
+  if (wasFirstUpgrade && p.referred_by) {
+    payReferralOnFirstUpgrade(p.id, p.referred_by).catch(() => {});
+  }
 }
 export async function rejectUpgrade(req: UpgradeRequest) {
   await supabase.from("upgrade_requests").update({ status: "rejected" }).eq("id", req.id);
