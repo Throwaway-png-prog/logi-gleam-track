@@ -777,7 +777,7 @@ async function getReferralBonuses(): Promise<{ referrer: number; referee: number
 }
 
 /** Credit referrer immediately when a new user signs up using their code. */
-async function creditReferrerOnSignup(referredId: string, referrerId: string): Promise<void> {
+async function _creditReferrerOnSignup(referredId: string, referrerId: string): Promise<void> {
   const { referrer: amt } = await getReferralBonuses();
   const { data: referrer } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
   if (!referrer) return;
@@ -814,7 +814,7 @@ async function creditReferrerOnSignup(referredId: string, referrerId: string): P
 }
 
 /** Credit referee's welcome bonus when they complete their first approved review. */
-async function creditRefereeOnFirstReview(referredId: string, referrerId: string): Promise<void> {
+async function _creditRefereeOnFirstReview(referredId: string, referrerId: string): Promise<void> {
   const { referee: amt } = await getReferralBonuses();
   const { data: referred } = await supabase.from("profiles").select("*").eq("id", referredId).single();
   if (!referred) return;
