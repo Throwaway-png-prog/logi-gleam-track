@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowLeft, Wallet, Loader2, CheckCircle2, AlertCircle, Clock, History } from "lucide-react";
+import { ArrowLeft, Wallet, Loader2, CheckCircle2, AlertCircle, Clock, History, Mail } from "lucide-react";
 import {
-  getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings,
+  getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings, calcWithdrawalFee, calcAutoApproveAt,
   type Profile, type RedemptionRequest,
 } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
+import { EmailVerifyModal } from "@/components/EmailVerifyModal";
 
 export const Route = createFileRoute("/redeem")({
   component: RedeemPage,
