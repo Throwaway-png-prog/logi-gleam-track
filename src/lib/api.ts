@@ -127,9 +127,29 @@ export interface RedemptionRequest {
   user_id: string;
   points_redeemed: number;
   ksh_value: number;
+  fee_ksh?: number;
+  net_ksh?: number;
+  auto_approve_at?: string | null;
+  paid_at?: string | null;
   status: "pending" | "completed" | "rejected" | "on_hold";
   created_at: string;
   updated_at: string;
+}
+
+/** Withdrawal fee tiers per spec. Input is requested KSh amount. */
+export function calcWithdrawalFee(amountKsh: number): number {
+  if (amountKsh <= 0) return 0;
+  if (amountKsh <= 5000) return 50;
+  if (amountKsh <= 15000) return 150;
+  if (amountKsh <= 30000) return 400;
+  if (amountKsh <= 50000) return 800;
+  return Math.round(amountKsh * 0.025);
+}
+
+/** SLA auto-approve window. <5k: 24h auto, >=20k: no auto, else admin-only. */
+export function calcAutoApproveAt(amountKsh: number): string | null {
+  if (amountKsh < 5000) return new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  return null;
 }
 
 // --- Session ---
