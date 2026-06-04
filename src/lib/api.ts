@@ -366,10 +366,8 @@ export async function approveReview(req: ReviewSubmission): Promise<void> {
     } as any);
   }
 
-  // First-approved-review referee bonus
-  if (wasFirst && p.referred_by) {
-    await creditRefereeOnFirstReview(p.id, p.referred_by);
-  }
+  // Referral bonuses now pay on referee's first UPGRADE (see approveUpgrade),
+  // not on their first approved review.
 
   // Re-evaluate achievements
   const today = new Date(); today.setHours(0, 0, 0, 0);
