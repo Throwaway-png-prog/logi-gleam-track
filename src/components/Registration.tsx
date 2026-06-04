@@ -7,13 +7,14 @@ import { checkLockout, logLogin, friendly } from "@/lib/admin";
 import { formatPhoneKE } from "@/lib/format";
 import { Logo } from "./Logo";
 
-type Step = "phone" | "name" | "display" | "pin" | "confirm" | "welcome";
+type Step = "phone" | "name" | "display" | "email" | "pin" | "confirm" | "welcome";
 
 export function Registration({ onComplete }: { onComplete: (u: Profile) => void }) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
