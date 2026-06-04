@@ -94,6 +94,7 @@ function AdminDashboard() {
             ["users", "Users", Users],
             ["products", "Products", Package],
             ["reviews", "Reviews", MessageSquare],
+            ["redemptions", "Withdrawals", Wallet],
             ["news", "News", Newspaper],
             ["payments", "Payment #s", PhoneIcon],
             ["messages", "Broadcast", MessageSquare],
