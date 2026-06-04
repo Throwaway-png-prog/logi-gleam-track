@@ -121,6 +121,19 @@ function RedeemPage() {
         </div>
       )}
 
+      {!emailVerified && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-gold/50 bg-gold/10 p-4">
+          <Mail className="size-5 text-gold shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Verify your email to withdraw funds</p>
+            <p className="text-xs text-muted-foreground">Required for all withdrawals — takes under a minute.</p>
+            <button onClick={() => setShowVerify(true)} className="mt-2 h-9 px-4 rounded-lg bg-gradient-gold text-gold-foreground text-xs font-semibold">
+              Verify email now
+            </button>
+          </div>
+        </div>
+      )}
+
       {success && !onHold && (
         <motion.div
           initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
