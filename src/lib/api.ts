@@ -1003,3 +1003,86 @@ export async function recordTierUpgrade(userId: string, fromTier: string, toTier
   } as any);
 }
 
+
+// --- Referral payout on referee's first upgrade ---
+export async function payReferralOnFirstUpgrade(referredId: string, referrerId: string): Promise<void> {
+  const { referrer: refrAmt, referee: refeAmt } = await getReferralBonuses();
+  // Cap check
+  const { data: cap } = await supabase.from("system_settings").select("referral_max_count" as any).eq("id", 1).maybeSingle();
+  const maxRefs = Number((cap as any)?.referral_max_count ?? 5);
+  const { data: rRow } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
+  if (!rRow) return;
+  const r = rRow as Profile;
+  const current = Number((r as any).referral_count ?? 0);
+  if (current >= maxRefs) return;
+  // Credit referrer
+  await supabase.from("profiles").update({
+    points: r.points + refrAmt,
+    total_referral_earnings: Number(r.total_referral_earnings ?? 0) + refrAmt,
+    referral_count: current + 1,
+  } as any).eq("id", r.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: r.id, delta: refrAmt, reason: "Referral bonus — referee upgraded", ref_id: referredId,
+  } as any);
+  await supabase.from("referral_earnings" as any).insert({
+    referrer_id: referrerId, referred_id: referredId, amount_ksh: refrAmt, kind: "referrer_upgrade", status: "paid",
+  } as any);
+  await supabase.from("messages" as any).insert({
+    title: "Referral bonus paid",
+    body: `Your referral upgraded. KSh ${refrAmt} added to your balance.`,
+    audience: "user", audience_value: referrerId,
+  } as any);
+  // Credit referee welcome
+  const { data: refdRow } = await supabase.from("profiles").select("*").eq("id", referredId).single();
+  if (refdRow) {
+    const refd = refdRow as Profile;
+    await supabase.from("profiles").update({ points: refd.points + refeAmt } as any).eq("id", refd.id);
+    await supabase.from("points_transactions" as any).insert({
+      user_id: refd.id, delta: refeAmt, reason: "Welcome bonus — first upgrade", ref_id: referrerId,
+    } as any);
+    await supabase.from("referral_earnings" as any).insert({
+      referrer_id: referrerId, referred_id: referredId, amount_ksh: refeAmt, kind: "referred_welcome", status: "paid",
+    } as any);
+    await supabase.from("messages" as any).insert({
+      title: "Welcome bonus",
+      body: `KSh ${refeAmt} welcome bonus added for your first upgrade.`,
+      audience: "user", audience_value: referredId,
+    } as any);
+  }
+}
+
+/** Pending referrals: referees who signed up but haven't completed first upgrade yet. */
+export async function pendingReferralCount(userId: string): Promise<number> {
+  const { data } = await supabase.from("profiles").select("id, first_upgrade_completed").eq("referred_by", userId);
+  return ((data as any[]) ?? []).filter((p) => !p.first_upgrade_completed).length;
+}
+
+// --- Email verification (OTP) ---
+function genOtp(): string { return String(Math.floor(100000 + Math.random() * 900000)); }
+
+export async function requestEmailOtp(userId: string, email: string): Promise<{ devCode?: string }> {
+  const code = genOtp();
+  const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  await supabase.from("email_verifications" as any).insert({
+    user_id: userId, email, code, expires_at: expires,
+  } as any);
+  await supabase.from("profiles").update({ email } as any).eq("id", userId);
+  // NOTE: SMTP not configured — return code to UI so user can complete the flow.
+  // Replace this with a real email send when an email provider is connected.
+  return { devCode: code };
+}
+
+export async function verifyEmailOtp(userId: string, code: string): Promise<boolean> {
+  const { data } = await supabase.from("email_verifications" as any)
+    .select("*").eq("user_id", userId).eq("code", code).eq("used", false)
+    .gte("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!data) return false;
+  await supabase.from("email_verifications" as any).update({ used: true } as any).eq("id", (data as any).id);
+  await supabase.from("profiles").update({ email_verified: true } as any).eq("id", userId);
+  return true;
+}
+
+export async function adminVerifyEmail(userId: string) {
+  await supabase.from("profiles").update({ email_verified: true } as any).eq("id", userId);
+}
