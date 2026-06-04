@@ -193,6 +193,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_verifications: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_alerts: {
         Row: {
           admin_id: string | null
@@ -633,6 +663,8 @@ export type Database = {
       profiles: {
         Row: {
           achievements: Json
+          admin_failed_attempts: number
+          admin_lockout_until: string | null
           avatar_url: string | null
           blocked: boolean
           blocked_reason: string | null
@@ -643,7 +675,10 @@ export type Database = {
           device_fingerprints: Json
           display_name: string
           display_name_changed_at: string | null
+          email: string | null
+          email_verified: boolean
           failed_login_count: number
+          first_upgrade_completed: boolean
           fraud_score: number
           full_name: string
           id: string
@@ -687,6 +722,8 @@ export type Database = {
         }
         Insert: {
           achievements?: Json
+          admin_failed_attempts?: number
+          admin_lockout_until?: string | null
           avatar_url?: string | null
           blocked?: boolean
           blocked_reason?: string | null
@@ -697,7 +734,10 @@ export type Database = {
           device_fingerprints?: Json
           display_name?: string
           display_name_changed_at?: string | null
+          email?: string | null
+          email_verified?: boolean
           failed_login_count?: number
+          first_upgrade_completed?: boolean
           fraud_score?: number
           full_name?: string
           id?: string
@@ -741,6 +781,8 @@ export type Database = {
         }
         Update: {
           achievements?: Json
+          admin_failed_attempts?: number
+          admin_lockout_until?: string | null
           avatar_url?: string | null
           blocked?: boolean
           blocked_reason?: string | null
@@ -751,7 +793,10 @@ export type Database = {
           device_fingerprints?: Json
           display_name?: string
           display_name_changed_at?: string | null
+          email?: string | null
+          email_verified?: boolean
           failed_login_count?: number
+          first_upgrade_completed?: boolean
           fraud_score?: number
           full_name?: string
           id?: string
@@ -797,27 +842,39 @@ export type Database = {
       }
       redemption_requests: {
         Row: {
+          auto_approve_at: string | null
           created_at: string
+          fee_ksh: number
           id: string
           ksh_value: number
+          net_ksh: number | null
+          paid_at: string | null
           points_redeemed: number
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          auto_approve_at?: string | null
           created_at?: string
+          fee_ksh?: number
           id?: string
           ksh_value: number
+          net_ksh?: number | null
+          paid_at?: string | null
           points_redeemed: number
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          auto_approve_at?: string | null
           created_at?: string
+          fee_ksh?: number
           id?: string
           ksh_value?: number
+          net_ksh?: number | null
+          paid_at?: string | null
           points_redeemed?: number
           status?: string
           updated_at?: string
@@ -841,6 +898,7 @@ export type Database = {
           kind: string
           referred_id: string
           referrer_id: string
+          status: string
         }
         Insert: {
           amount_ksh: number
@@ -849,6 +907,7 @@ export type Database = {
           kind?: string
           referred_id: string
           referrer_id: string
+          status?: string
         }
         Update: {
           amount_ksh?: number
@@ -857,6 +916,7 @@ export type Database = {
           kind?: string
           referred_id?: string
           referrer_id?: string
+          status?: string
         }
         Relationships: []
       }

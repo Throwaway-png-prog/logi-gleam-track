@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowLeft, Wallet, Loader2, CheckCircle2, AlertCircle, Clock, History } from "lucide-react";
+import { ArrowLeft, Wallet, Loader2, CheckCircle2, AlertCircle, Clock, History, Mail } from "lucide-react";
 import {
-  getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings,
+  getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings, calcWithdrawalFee, calcAutoApproveAt,
   type Profile, type RedemptionRequest,
 } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
+import { EmailVerifyModal } from "@/components/EmailVerifyModal";
 
 export const Route = createFileRoute("/redeem")({
   component: RedeemPage,
@@ -45,6 +46,8 @@ function RedeemPage() {
     refresh(id);
   }, [navigate]);
 
+  const [showVerify, setShowVerify] = useState(false);
+
   const finalAmount = useMemo(() => {
     if (custom) {
       const n = parseInt(custom.replace(/\D/g, ""), 10);
@@ -53,7 +56,12 @@ function RedeemPage() {
     return amount;
   }, [amount, custom]);
 
-  const valid = user && finalAmount >= minAmount && finalAmount <= user.points && !onHold;
+  const fee = useMemo(() => (finalAmount > 0 ? calcWithdrawalFee(finalAmount) : 0), [finalAmount]);
+  const totalDebit = finalAmount + fee;
+  const slaHours = finalAmount >= 20000 ? 48 : finalAmount >= 5000 ? null : 24;
+
+  const emailVerified = Boolean(user?.email_verified);
+  const valid = user && emailVerified && finalAmount >= minAmount && totalDebit <= user.points && !onHold;
 
   async function submit() {
     if (!user || !valid) return;
@@ -113,6 +121,19 @@ function RedeemPage() {
         </div>
       )}
 
+      {!emailVerified && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-gold/50 bg-gold/10 p-4">
+          <Mail className="size-5 text-gold shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Verify your email to withdraw funds</p>
+            <p className="text-xs text-muted-foreground">Required for all withdrawals — takes under a minute.</p>
+            <button onClick={() => setShowVerify(true)} className="mt-2 h-9 px-4 rounded-lg bg-gradient-gold text-gold-foreground text-xs font-semibold">
+              Verify email now
+            </button>
+          </div>
+        </div>
+      )}
+
       {success && !onHold && (
         <motion.div
           initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
@@ -167,9 +188,34 @@ function RedeemPage() {
         </div>
 
         {finalAmount > 0 && (
-          <div className="mt-4 flex items-center justify-between rounded-xl bg-background/40 p-3">
-            <span className="text-sm text-muted-foreground">You'll receive</span>
-            <span className="font-bold text-gradient-gold">KSh {finalAmount.toLocaleString()}</span>
+          <div className="mt-4 rounded-xl bg-background/40 p-4 space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Withdrawal amount</span>
+              <span className="font-semibold">KSh {finalAmount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Processing fee</span>
+              <span className="font-semibold text-destructive">– KSh {fee.toLocaleString()}</span>
+            </div>
+            <div className="border-t border-border/50 pt-2 flex items-center justify-between">
+              <span className="text-muted-foreground">Total debited</span>
+              <span className="font-semibold">KSh {totalDebit.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-muted-foreground">You receive</span>
+              <span className="font-bold text-gradient-gold text-base">KSh {finalAmount.toLocaleString()}</span>
+            </div>
+            {slaHours && (
+              <p className="text-[11px] text-muted-foreground pt-1 flex items-center gap-1">
+                <Clock className="size-3" /> Auto-approved within {slaHours} hours if not actioned sooner.
+              </p>
+            )}
+            {finalAmount >= 5000 && finalAmount < 20000 && (
+              <p className="text-[11px] text-muted-foreground pt-1">Requires admin approval (no auto timer).</p>
+            )}
+            {finalAmount >= 20000 && (
+              <p className="text-[11px] text-muted-foreground pt-1">Large withdrawal — admin approval required (max 48h).</p>
+            )}
           </div>
         )}
 
@@ -215,6 +261,12 @@ function RedeemPage() {
         )}
       </section>
     </div>
+    <EmailVerifyModal
+      user={user}
+      open={showVerify}
+      onClose={() => setShowVerify(false)}
+      onVerified={async () => { const fresh = await loadProfile(user.id); if (fresh) setUser(fresh); }}
+    />
     </AppShell>
   );
 }

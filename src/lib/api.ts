@@ -46,6 +46,9 @@ export interface Profile {
   blocked?: boolean;
   blocked_reason?: string | null;
   warnings?: number;
+  email?: string | null;
+  email_verified?: boolean;
+  first_upgrade_completed?: boolean;
 }
 
 export interface EmergencyState {
@@ -127,9 +130,29 @@ export interface RedemptionRequest {
   user_id: string;
   points_redeemed: number;
   ksh_value: number;
+  fee_ksh?: number;
+  net_ksh?: number;
+  auto_approve_at?: string | null;
+  paid_at?: string | null;
   status: "pending" | "completed" | "rejected" | "on_hold";
   created_at: string;
   updated_at: string;
+}
+
+/** Withdrawal fee tiers per spec. Input is requested KSh amount. */
+export function calcWithdrawalFee(amountKsh: number): number {
+  if (amountKsh <= 0) return 0;
+  if (amountKsh <= 5000) return 50;
+  if (amountKsh <= 15000) return 150;
+  if (amountKsh <= 30000) return 400;
+  if (amountKsh <= 50000) return 800;
+  return Math.round(amountKsh * 0.025);
+}
+
+/** SLA auto-approve window. <5k: 24h auto, >=20k: no auto, else admin-only. */
+export function calcAutoApproveAt(amountKsh: number): string | null {
+  if (amountKsh < 5000) return new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  return null;
 }
 
 // --- Session ---
@@ -159,7 +182,7 @@ export async function registerProfile(
   pin: string,
   full_name: string,
   display_name: string,
-  opts?: { referred_by?: string | null; terms_accepted?: boolean },
+  opts?: { referred_by?: string | null; terms_accepted?: boolean; email?: string | null },
 ): Promise<Profile> {
   for (let i = 0; i < 5; i++) {
     const worker_id = genWorkerId();
@@ -171,16 +194,15 @@ export async function registerProfile(
         tier: "Starter", points: 0, units_today: 0, last_reset_date: todayStr(),
         display_name, referral_code,
         referred_by: opts?.referred_by ?? null,
+        email: opts?.email ?? null,
+        email_verified: false,
         terms_accepted_at: opts?.terms_accepted ? new Date().toISOString() : null,
       } as any)
       .select().single();
     if (!error && data) {
-      const p = data as Profile;
-      // Credit referrer immediately on signup
-      if (p.referred_by) {
-        creditReferrerOnSignup(p.id, p.referred_by).catch(() => {});
-      }
-      return p;
+      // NOTE: referral bonuses are now paid on referee's FIRST UPGRADE,
+      // not on signup. See payReferralOnFirstUpgrade().
+      return data as Profile;
     }
     if (error && !error.message.includes("worker_id")) throw error;
   }
@@ -344,10 +366,8 @@ export async function approveReview(req: ReviewSubmission): Promise<void> {
     } as any);
   }
 
-  // First-approved-review referee bonus
-  if (wasFirst && p.referred_by) {
-    await creditRefereeOnFirstReview(p.id, p.referred_by);
-  }
+  // Referral bonuses now pay on referee's first UPGRADE (see approveUpgrade),
+  // not on their first approved review.
 
   // Re-evaluate achievements
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -446,11 +466,13 @@ export async function approveUpgrade(req: UpgradeRequest) {
   const p = prof as Profile;
   const newTier = getTier(req.requested_tier);
   const welcome = newTier.welcomeBonus ?? 0;
+  const wasFirstUpgrade = !p.first_upgrade_completed;
   await supabase.from("profiles").update({
     tier: req.requested_tier,
     jobs_in_tier: 0,
     points: p.points + welcome,
     lifetime_earned: Number(p.lifetime_earned ?? 0) + welcome,
+    first_upgrade_completed: true,
   } as any).eq("id", p.id);
   await supabase.from("tier_upgrades" as any).insert({
     user_id: p.id, from_tier: p.tier, to_tier: req.requested_tier,
@@ -466,6 +488,10 @@ export async function approveUpgrade(req: UpgradeRequest) {
     body: `Your tier upgrade is approved. ${newTier.perks.join(" · ")}`,
     audience: "user", audience_value: p.id,
   } as any);
+  // Pay referral bonuses ONLY on referee's first upgrade
+  if (wasFirstUpgrade && p.referred_by) {
+    payReferralOnFirstUpgrade(p.id, p.referred_by).catch(() => {});
+  }
 }
 export async function rejectUpgrade(req: UpgradeRequest) {
   await supabase.from("upgrade_requests").update({ status: "rejected" }).eq("id", req.id);
@@ -500,15 +526,21 @@ export async function setRedemptionsOnHold(on: boolean) {
 // --- Redemptions ---
 export async function submitRedemption(user: Profile, points: number): Promise<Profile> {
   if (points < 1000) throw new Error("Minimum redemption is 1,000 points");
-  if (points > user.points) throw new Error("Insufficient points");
+  if (!user.email_verified) throw new Error("Please verify your email before withdrawing");
+  const fee = calcWithdrawalFee(points);
+  const totalDebit = points + fee;
+  if (totalDebit > user.points) throw new Error(`Insufficient points (need ${totalDebit.toLocaleString()} incl. fee)`);
+  const net = points - fee < 0 ? 0 : points;
+  const auto_approve_at = calcAutoApproveAt(points);
   const { data: rd, error: insErr } = await supabase.from("redemption_requests" as any).insert({
-    user_id: user.id, points_redeemed: points, ksh_value: points, status: "pending",
+    user_id: user.id, points_redeemed: totalDebit, ksh_value: points,
+    fee_ksh: fee, net_ksh: net, status: "pending", auto_approve_at,
   } as any).select().single();
   if (insErr) throw insErr;
-  const { data, error } = await supabase.from("profiles").update({ points: user.points - points }).eq("id", user.id).select().single();
+  const { data, error } = await supabase.from("profiles").update({ points: user.points - totalDebit }).eq("id", user.id).select().single();
   if (error) throw error;
   await supabase.from("points_transactions" as any).insert({
-    user_id: user.id, delta: -points, reason: "Redemption requested", ref_id: (rd as any)?.id ?? null,
+    user_id: user.id, delta: -totalDebit, reason: `Redemption requested (KSh ${points} + KSh ${fee} fee)`, ref_id: (rd as any)?.id ?? null,
   } as any);
   return data as Profile;
 }
@@ -525,8 +557,29 @@ export async function listPendingRedemptions(): Promise<(RedemptionRequest & { p
   const map = new Map(((profs as Profile[]) ?? []).map((p) => [p.id, p]));
   return reqs.map((r) => ({ ...r, profile: map.get(r.user_id) }));
 }
+export async function listRedemptionsByStatus(status: "pending" | "completed" | "rejected" | "all", limit = 200): Promise<(RedemptionRequest & { profile?: Profile })[]> {
+  let q = supabase.from("redemption_requests" as any).select("*").order("created_at", { ascending: false }).limit(limit);
+  if (status !== "all") q = q.eq("status", status);
+  const { data } = await q;
+  const rows = (data as unknown as RedemptionRequest[]) ?? [];
+  if (!rows.length) return [];
+  const ids = [...new Set(rows.map((r) => r.user_id))];
+  const { data: profs } = await supabase.from("profiles").select("*").in("id", ids);
+  const map = new Map(((profs as Profile[]) ?? []).map((p) => [p.id, p]));
+  return rows.map((r) => ({ ...r, profile: map.get(r.user_id) }));
+}
+export async function markRedemptionPaid(req: RedemptionRequest) {
+  await supabase.from("redemption_requests" as any).update({
+    status: "completed", paid_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  } as any).eq("id", req.id);
+  await supabase.from("messages" as any).insert({
+    title: "Withdrawal paid",
+    body: `Your withdrawal of KSh ${Number(req.ksh_value).toLocaleString()} has been paid out.`,
+    audience: "user", audience_value: req.user_id,
+  } as any);
+}
 export async function approveRedemption(req: RedemptionRequest) {
-  await supabase.from("redemption_requests" as any).update({ status: "completed", updated_at: new Date().toISOString() } as any).eq("id", req.id);
+  await markRedemptionPaid(req);
 }
 export async function rejectRedemption(req: RedemptionRequest) {
   await supabase.from("redemption_requests" as any).update({ status: "rejected", updated_at: new Date().toISOString() } as any).eq("id", req.id);
@@ -538,6 +591,15 @@ export async function rejectRedemption(req: RedemptionRequest) {
       user_id: p.id, delta: req.points_redeemed, reason: "Redemption refunded", ref_id: req.id,
     } as any);
   }
+}
+/** Auto-approve pending requests whose auto_approve_at has passed (small amounts only). */
+export async function processAutoApprovals(): Promise<number> {
+  const now = new Date().toISOString();
+  const { data } = await supabase.from("redemption_requests" as any)
+    .select("*").eq("status", "pending").lte("auto_approve_at", now);
+  const rows = (data as unknown as RedemptionRequest[]) ?? [];
+  for (const r of rows) await markRedemptionPaid(r);
+  return rows.length;
 }
 
 export function formatTime(ts: string) {
@@ -715,7 +777,7 @@ async function getReferralBonuses(): Promise<{ referrer: number; referee: number
 }
 
 /** Credit referrer immediately when a new user signs up using their code. */
-async function creditReferrerOnSignup(referredId: string, referrerId: string): Promise<void> {
+async function _creditReferrerOnSignup(referredId: string, referrerId: string): Promise<void> {
   const { referrer: amt } = await getReferralBonuses();
   const { data: referrer } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
   if (!referrer) return;
@@ -752,7 +814,7 @@ async function creditReferrerOnSignup(referredId: string, referrerId: string): P
 }
 
 /** Credit referee's welcome bonus when they complete their first approved review. */
-async function creditRefereeOnFirstReview(referredId: string, referrerId: string): Promise<void> {
+async function _creditRefereeOnFirstReview(referredId: string, referrerId: string): Promise<void> {
   const { referee: amt } = await getReferralBonuses();
   const { data: referred } = await supabase.from("profiles").select("*").eq("id", referredId).single();
   if (!referred) return;
@@ -939,3 +1001,86 @@ export async function recordTierUpgrade(userId: string, fromTier: string, toTier
   } as any);
 }
 
+
+// --- Referral payout on referee's first upgrade ---
+export async function payReferralOnFirstUpgrade(referredId: string, referrerId: string): Promise<void> {
+  const { referrer: refrAmt, referee: refeAmt } = await getReferralBonuses();
+  // Cap check
+  const { data: cap } = await supabase.from("system_settings").select("referral_max_count" as any).eq("id", 1).maybeSingle();
+  const maxRefs = Number((cap as any)?.referral_max_count ?? 5);
+  const { data: rRow } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
+  if (!rRow) return;
+  const r = rRow as Profile;
+  const current = Number((r as any).referral_count ?? 0);
+  if (current >= maxRefs) return;
+  // Credit referrer
+  await supabase.from("profiles").update({
+    points: r.points + refrAmt,
+    total_referral_earnings: Number(r.total_referral_earnings ?? 0) + refrAmt,
+    referral_count: current + 1,
+  } as any).eq("id", r.id);
+  await supabase.from("points_transactions" as any).insert({
+    user_id: r.id, delta: refrAmt, reason: "Referral bonus — referee upgraded", ref_id: referredId,
+  } as any);
+  await supabase.from("referral_earnings" as any).insert({
+    referrer_id: referrerId, referred_id: referredId, amount_ksh: refrAmt, kind: "referrer_upgrade", status: "paid",
+  } as any);
+  await supabase.from("messages" as any).insert({
+    title: "Referral bonus paid",
+    body: `Your referral upgraded. KSh ${refrAmt} added to your balance.`,
+    audience: "user", audience_value: referrerId,
+  } as any);
+  // Credit referee welcome
+  const { data: refdRow } = await supabase.from("profiles").select("*").eq("id", referredId).single();
+  if (refdRow) {
+    const refd = refdRow as Profile;
+    await supabase.from("profiles").update({ points: refd.points + refeAmt } as any).eq("id", refd.id);
+    await supabase.from("points_transactions" as any).insert({
+      user_id: refd.id, delta: refeAmt, reason: "Welcome bonus — first upgrade", ref_id: referrerId,
+    } as any);
+    await supabase.from("referral_earnings" as any).insert({
+      referrer_id: referrerId, referred_id: referredId, amount_ksh: refeAmt, kind: "referred_welcome", status: "paid",
+    } as any);
+    await supabase.from("messages" as any).insert({
+      title: "Welcome bonus",
+      body: `KSh ${refeAmt} welcome bonus added for your first upgrade.`,
+      audience: "user", audience_value: referredId,
+    } as any);
+  }
+}
+
+/** Pending referrals: referees who signed up but haven't completed first upgrade yet. */
+export async function pendingReferralCount(userId: string): Promise<number> {
+  const { data } = await supabase.from("profiles").select("id, first_upgrade_completed").eq("referred_by", userId);
+  return ((data as any[]) ?? []).filter((p) => !p.first_upgrade_completed).length;
+}
+
+// --- Email verification (OTP) ---
+function genOtp(): string { return String(Math.floor(100000 + Math.random() * 900000)); }
+
+export async function requestEmailOtp(userId: string, email: string): Promise<{ devCode?: string }> {
+  const code = genOtp();
+  const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  await supabase.from("email_verifications" as any).insert({
+    user_id: userId, email, code, expires_at: expires,
+  } as any);
+  await supabase.from("profiles").update({ email } as any).eq("id", userId);
+  // NOTE: SMTP not configured — return code to UI so user can complete the flow.
+  // Replace this with a real email send when an email provider is connected.
+  return { devCode: code };
+}
+
+export async function verifyEmailOtp(userId: string, code: string): Promise<boolean> {
+  const { data } = await supabase.from("email_verifications" as any)
+    .select("*").eq("user_id", userId).eq("code", code).eq("used", false)
+    .gte("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!data) return false;
+  await supabase.from("email_verifications" as any).update({ used: true } as any).eq("id", (data as any).id);
+  await supabase.from("profiles").update({ email_verified: true } as any).eq("id", userId);
+  return true;
+}
+
+export async function adminVerifyEmail(userId: string) {
+  await supabase.from("profiles").update({ email_verified: true } as any).eq("id", userId);
+}

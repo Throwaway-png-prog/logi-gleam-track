@@ -200,6 +200,11 @@ function ProfilePage() {
             <Mini label="Active" value={`${successfulRefs}`} />
             <Mini label="Earned" value={formatKsh(user.total_referral_earnings ?? 0)} />
           </div>
+          {refs.length - successfulRefs > 0 && (
+            <p className="mt-3 text-xs text-gold bg-gold/10 border border-gold/30 rounded-lg p-2.5">
+              Pending: {refs.length - successfulRefs} referral{refs.length - successfulRefs > 1 ? "s" : ""} — bonus pays after they complete their first upgrade.
+            </p>
+          )}
           {refs.length > 0 && (
             <ul className="mt-4 divide-y divide-border/30 text-sm">
               {refs.slice(0, 6).map((r) => (
