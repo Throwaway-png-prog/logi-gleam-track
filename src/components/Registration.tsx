@@ -122,7 +122,7 @@ export function Registration({ onComplete }: { onComplete: (u: Profile) => void 
         if (ref) referrerId = ref.id;
       }
       const u = await registerProfile(phone, pin, fullName.trim(), displayName.trim(), {
-        referred_by: referrerId, terms_accepted: true,
+        referred_by: referrerId, terms_accepted: true, email: email.trim() || null,
       });
       setPendingReferral(null);
       setProfile(u); setSessionId(u.id); setStep("welcome");
