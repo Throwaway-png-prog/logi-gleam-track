@@ -522,15 +522,21 @@ export async function setRedemptionsOnHold(on: boolean) {
 // --- Redemptions ---
 export async function submitRedemption(user: Profile, points: number): Promise<Profile> {
   if (points < 1000) throw new Error("Minimum redemption is 1,000 points");
-  if (points > user.points) throw new Error("Insufficient points");
+  if (!user.email_verified) throw new Error("Please verify your email before withdrawing");
+  const fee = calcWithdrawalFee(points);
+  const totalDebit = points + fee;
+  if (totalDebit > user.points) throw new Error(`Insufficient points (need ${totalDebit.toLocaleString()} incl. fee)`);
+  const net = points - fee < 0 ? 0 : points;
+  const auto_approve_at = calcAutoApproveAt(points);
   const { data: rd, error: insErr } = await supabase.from("redemption_requests" as any).insert({
-    user_id: user.id, points_redeemed: points, ksh_value: points, status: "pending",
+    user_id: user.id, points_redeemed: totalDebit, ksh_value: points,
+    fee_ksh: fee, net_ksh: net, status: "pending", auto_approve_at,
   } as any).select().single();
   if (insErr) throw insErr;
-  const { data, error } = await supabase.from("profiles").update({ points: user.points - points }).eq("id", user.id).select().single();
+  const { data, error } = await supabase.from("profiles").update({ points: user.points - totalDebit }).eq("id", user.id).select().single();
   if (error) throw error;
   await supabase.from("points_transactions" as any).insert({
-    user_id: user.id, delta: -points, reason: "Redemption requested", ref_id: (rd as any)?.id ?? null,
+    user_id: user.id, delta: -totalDebit, reason: `Redemption requested (KSh ${points} + KSh ${fee} fee)`, ref_id: (rd as any)?.id ?? null,
   } as any);
   return data as Profile;
 }
@@ -547,8 +553,29 @@ export async function listPendingRedemptions(): Promise<(RedemptionRequest & { p
   const map = new Map(((profs as Profile[]) ?? []).map((p) => [p.id, p]));
   return reqs.map((r) => ({ ...r, profile: map.get(r.user_id) }));
 }
+export async function listRedemptionsByStatus(status: "pending" | "completed" | "rejected" | "all", limit = 200): Promise<(RedemptionRequest & { profile?: Profile })[]> {
+  let q = supabase.from("redemption_requests" as any).select("*").order("created_at", { ascending: false }).limit(limit);
+  if (status !== "all") q = q.eq("status", status);
+  const { data } = await q;
+  const rows = (data as unknown as RedemptionRequest[]) ?? [];
+  if (!rows.length) return [];
+  const ids = [...new Set(rows.map((r) => r.user_id))];
+  const { data: profs } = await supabase.from("profiles").select("*").in("id", ids);
+  const map = new Map(((profs as Profile[]) ?? []).map((p) => [p.id, p]));
+  return rows.map((r) => ({ ...r, profile: map.get(r.user_id) }));
+}
+export async function markRedemptionPaid(req: RedemptionRequest) {
+  await supabase.from("redemption_requests" as any).update({
+    status: "completed", paid_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  } as any).eq("id", req.id);
+  await supabase.from("messages" as any).insert({
+    title: "Withdrawal paid",
+    body: `Your withdrawal of KSh ${Number(req.ksh_value).toLocaleString()} has been paid out.`,
+    audience: "user", audience_value: req.user_id,
+  } as any);
+}
 export async function approveRedemption(req: RedemptionRequest) {
-  await supabase.from("redemption_requests" as any).update({ status: "completed", updated_at: new Date().toISOString() } as any).eq("id", req.id);
+  await markRedemptionPaid(req);
 }
 export async function rejectRedemption(req: RedemptionRequest) {
   await supabase.from("redemption_requests" as any).update({ status: "rejected", updated_at: new Date().toISOString() } as any).eq("id", req.id);
@@ -560,6 +587,15 @@ export async function rejectRedemption(req: RedemptionRequest) {
       user_id: p.id, delta: req.points_redeemed, reason: "Redemption refunded", ref_id: req.id,
     } as any);
   }
+}
+/** Auto-approve pending requests whose auto_approve_at has passed (small amounts only). */
+export async function processAutoApprovals(): Promise<number> {
+  const now = new Date().toISOString();
+  const { data } = await supabase.from("redemption_requests" as any)
+    .select("*").eq("status", "pending").lte("auto_approve_at", now);
+  const rows = (data as unknown as RedemptionRequest[]) ?? [];
+  for (const r of rows) await markRedemptionPaid(r);
+  return rows.length;
 }
 
 export function formatTime(ts: string) {
