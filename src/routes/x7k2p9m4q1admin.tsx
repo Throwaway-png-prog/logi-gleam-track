@@ -308,6 +308,10 @@ function UserDetailDrawer({ user, onClose, onUpdated }: { user: Profile; onClose
             <ActionBtn icon={Crown} label="Force tier" tone="primary" disabled={busy} onClick={forceTier} />
             <ActionBtn icon={Wand2} label="Reset PIN" tone="gold" disabled={busy}
               onClick={() => withReason(async (r) => { await adminWarnUser(user.id, `PIN reset request: ${r}`); }, "Reason for reset (logs as warning):")} />
+            {!user.email_verified && (
+              <ActionBtn icon={Mail} label="Verify email" tone="success" disabled={busy}
+                onClick={async () => { setBusy(true); await adminVerifyEmail(user.id); toast.success("Email marked verified"); onUpdated(); setBusy(false); }} />
+            )}
             <ActionBtn icon={UserX} label="Delete" tone="destructive" disabled={busy}
               onClick={() => withReason((r) => adminSoftDelete(user.id, r), "Reason for deletion:")} />
           </div>
