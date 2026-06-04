@@ -920,3 +920,137 @@ function Toggle({ label, desc, v, on }: { label: string; desc: string; v: boolea
     </div>
   );
 }
+
+function RedemptionsTab() {
+  const [filter, setFilter] = useState<"pending" | "completed" | "rejected" | "all">("pending");
+  const [rows, setRows] = useState<(RedemptionRequest & { profile?: Profile })[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function refresh() {
+    setLoading(true);
+    try { setRows(await listRedemptionsByStatus(filter, 500)); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { refresh(); }, [filter]);
+
+  async function runAutoApprove() {
+    const n = await processAutoApprovals();
+    toast.success(n > 0 ? `Auto-approved ${n} small withdrawal(s)` : "No withdrawals due for auto-approval");
+    refresh();
+  }
+
+  async function markPaid(r: RedemptionRequest) {
+    setBusyId(r.id);
+    try { await markRedemptionPaid(r); toast.success("Marked as PAID"); await refresh(); }
+    catch (e: any) { toast.error(e?.message ?? "Failed"); }
+    finally { setBusyId(null); }
+  }
+  async function reject(r: RedemptionRequest) {
+    if (!confirm("Reject and refund this withdrawal?")) return;
+    setBusyId(r.id);
+    try { await rejectRedemption(r); toast.success("Rejected & refunded"); await refresh(); }
+    catch (e: any) { toast.error(e?.message ?? "Failed"); }
+    finally { setBusyId(null); }
+  }
+
+  function slaCountdown(r: RedemptionRequest) {
+    if (!r.auto_approve_at || r.status !== "pending") return null;
+    const ms = new Date(r.auto_approve_at).getTime() - Date.now();
+    if (ms <= 0) return "Auto-approve due";
+    const h = Math.floor(ms / 3600_000);
+    const m = Math.floor((ms % 3600_000) / 60_000);
+    return `Auto in ${h}h ${m}m`;
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Filter className="size-4 text-muted-foreground" />
+        {(["pending", "completed", "rejected", "all"] as const).map((f) => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-3 h-9 rounded-full text-xs font-semibold ${filter === f ? "bg-gradient-primary text-primary-foreground" : "glass text-muted-foreground"}`}>
+            {f[0].toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+        <div className="flex-1" />
+        <button onClick={runAutoApprove} className="h-10 px-3 rounded-xl glass text-xs font-semibold flex items-center gap-1.5">
+          <RefreshCw className="size-3.5" /> Run auto-approve
+        </button>
+      </div>
+
+      <div className="glass rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
+            <thead className="bg-background/40 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left p-3">User</th>
+                <th className="text-right p-3">Amount</th>
+                <th className="text-right p-3">Fee</th>
+                <th className="text-left p-3">Requested</th>
+                <th className="text-left p-3">SLA</th>
+                <th className="text-left p-3">Status</th>
+                <th className="text-right p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground"><Loader2 className="inline size-4 animate-spin" /></td></tr>
+              )}
+              {!loading && rows.length === 0 && (
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No withdrawals.</td></tr>
+              )}
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-border/30">
+                  <td className="p-3">
+                    <p className="font-semibold">{r.profile?.display_name || "User"}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{r.profile?.phone}</p>
+                  </td>
+                  <td className="p-3 text-right font-bold text-gold">KSh {Number(r.ksh_value).toLocaleString()}</td>
+                  <td className="p-3 text-right text-xs text-muted-foreground">KSh {Number(r.fee_ksh ?? 0).toLocaleString()}</td>
+                  <td className="p-3 text-xs text-muted-foreground">{timeAgo(r.created_at)}</td>
+                  <td className="p-3 text-xs">{slaCountdown(r) ?? "—"}</td>
+                  <td className="p-3">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      r.status === "pending" ? "bg-gold/15 text-gold" :
+                      r.status === "completed" ? "bg-primary/15 text-primary" :
+                      "bg-destructive/15 text-destructive"
+                    }`}>
+                      {r.status === "completed" ? "PAID" : r.status}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    {r.status === "pending" && (
+                      <div className="flex justify-end gap-1.5">
+                        <button onClick={() => markPaid(r)} disabled={busyId === r.id}
+                          className="h-9 min-w-[48px] px-3 rounded-lg bg-gradient-primary text-primary-foreground text-xs font-semibold flex items-center gap-1">
+                          <Check className="size-3.5" /> Paid
+                        </button>
+                        <button onClick={() => reject(r)} disabled={busyId === r.id}
+                          className="h-9 min-w-[48px] px-3 rounded-lg glass text-destructive text-xs font-semibold">
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                    {r.status === "completed" && r.paid_at && (
+                      <span className="text-xs text-muted-foreground">{timeAgo(r.paid_at)}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl p-4 text-xs text-muted-foreground space-y-1">
+        <p className="font-semibold text-foreground">Withdrawal rules</p>
+        <p>• Under KSh 5,000 → auto-approved within 24h if admin doesn't act</p>
+        <p>• KSh 5,000 – 19,999 → admin approval required (no auto timer)</p>
+        <p>• KSh 20,000+ → admin approval required (max 48h)</p>
+        <p className="pt-1 font-semibold text-foreground">Fees</p>
+        <p>1k–5k: KSh 50 · 5k–15k: KSh 150 · 15k–30k: KSh 400 · 30k–50k: KSh 800 · 50k+: 2.5%</p>
+      </div>
+    </section>
+  );
+}
