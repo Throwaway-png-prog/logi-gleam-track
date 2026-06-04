@@ -46,6 +46,8 @@ function RedeemPage() {
     refresh(id);
   }, [navigate]);
 
+  const [showVerify, setShowVerify] = useState(false);
+
   const finalAmount = useMemo(() => {
     if (custom) {
       const n = parseInt(custom.replace(/\D/g, ""), 10);
@@ -54,7 +56,12 @@ function RedeemPage() {
     return amount;
   }, [amount, custom]);
 
-  const valid = user && finalAmount >= minAmount && finalAmount <= user.points && !onHold;
+  const fee = useMemo(() => (finalAmount > 0 ? calcWithdrawalFee(finalAmount) : 0), [finalAmount]);
+  const totalDebit = finalAmount + fee;
+  const slaHours = finalAmount >= 20000 ? 48 : finalAmount >= 5000 ? null : 24;
+
+  const emailVerified = Boolean(user?.email_verified);
+  const valid = user && emailVerified && finalAmount >= minAmount && totalDebit <= user.points && !onHold;
 
   async function submit() {
     if (!user || !valid) return;
