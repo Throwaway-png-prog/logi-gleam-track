@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
   ShieldCheck, Loader2, Users, Package, MessageSquare, Activity, Coins, Settings, Send, Plus, Edit,
-  Trash2, Search, AlertTriangle, Ban, Wand2, UserX, FileDown, Phone as PhoneIcon, Newspaper, Crown,
+  Trash2, Search, AlertTriangle, Ban, Wand2, UserX, FileDown, Phone as PhoneIcon, Newspaper, Crown, Wallet, Check, Filter, RefreshCw, Mail,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid,
