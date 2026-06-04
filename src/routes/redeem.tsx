@@ -188,9 +188,34 @@ function RedeemPage() {
         </div>
 
         {finalAmount > 0 && (
-          <div className="mt-4 flex items-center justify-between rounded-xl bg-background/40 p-3">
-            <span className="text-sm text-muted-foreground">You'll receive</span>
-            <span className="font-bold text-gradient-gold">KSh {finalAmount.toLocaleString()}</span>
+          <div className="mt-4 rounded-xl bg-background/40 p-4 space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Withdrawal amount</span>
+              <span className="font-semibold">KSh {finalAmount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Processing fee</span>
+              <span className="font-semibold text-destructive">– KSh {fee.toLocaleString()}</span>
+            </div>
+            <div className="border-t border-border/50 pt-2 flex items-center justify-between">
+              <span className="text-muted-foreground">Total debited</span>
+              <span className="font-semibold">KSh {totalDebit.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-muted-foreground">You receive</span>
+              <span className="font-bold text-gradient-gold text-base">KSh {finalAmount.toLocaleString()}</span>
+            </div>
+            {slaHours && (
+              <p className="text-[11px] text-muted-foreground pt-1 flex items-center gap-1">
+                <Clock className="size-3" /> Auto-approved within {slaHours} hours if not actioned sooner.
+              </p>
+            )}
+            {finalAmount >= 5000 && finalAmount < 20000 && (
+              <p className="text-[11px] text-muted-foreground pt-1">Requires admin approval (no auto timer).</p>
+            )}
+            {finalAmount >= 20000 && (
+              <p className="text-[11px] text-muted-foreground pt-1">Large withdrawal — admin approval required (max 48h).</p>
+            )}
           </div>
         )}
 
