@@ -94,6 +94,17 @@ export function Dashboard({ user, setUser, onLogout }: {
           </div>
         )}
 
+        {!user.email_verified && (
+          <Link to="/redeem" className="mb-4 flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold/10 p-4 hover:bg-gold/15 transition">
+            <span className="size-9 rounded-xl bg-gold/20 flex items-center justify-center text-gold">✉</span>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Verify your email to withdraw funds</p>
+              <p className="text-xs text-muted-foreground">Tap to verify — takes under a minute.</p>
+            </div>
+            <ChevronRight className="size-4 text-gold" />
+          </Link>
+        )}
+
         {/* Greeting */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
