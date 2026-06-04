@@ -13,7 +13,8 @@ import {
   setRegistrationOpen, getRegistrationOpen, listProducts, startEmergency, stopEmergency,
   softDeleteProduct, setMinRedemption,
   listPendingReviews, approveReview, rejectReview,
-  type Profile, type Product, type ReviewSubmission,
+  listRedemptionsByStatus, markRedemptionPaid, rejectRedemption, processAutoApprovals, adminVerifyEmail,
+  type Profile, type Product, type ReviewSubmission, type RedemptionRequest,
 } from "@/lib/api";
 import {
   getDailyAnalytics, listAdminActions, listLoginAttempts, listPaymentNumbers, addPaymentNumber,
