@@ -310,7 +310,7 @@ export function Dashboard({ user, setUser, onLogout }: {
               ))}
             </ul>
             <Link
-              to="/upgrade"
+              to="/vip"
               className="w-full h-12 rounded-xl bg-gradient-gold text-gold-foreground font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition relative"
             >
               Upgrade to {nextTier.name} <ChevronRight className="size-4" />
