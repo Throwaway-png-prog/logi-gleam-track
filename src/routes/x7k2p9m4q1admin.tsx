@@ -1075,3 +1075,96 @@ function RedemptionsTab() {
     </section>
   );
 }
+
+function CommunityTab() {
+  const [links, setLinks] = useState({ telegram_url: "", whatsapp_url: "" });
+  const [managers, setManagers] = useState<Manager[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+
+  async function load() {
+    const [l, m] = await Promise.all([getCommunityLinks(), listManagers()]);
+    setLinks(l); setManagers(m); setLoaded(true);
+  }
+  useEffect(() => { load(); }, []);
+
+  if (!loaded) return <Loader2 className="size-6 animate-spin" />;
+
+  async function saveLinks() {
+    await setCommunityLinks(links);
+    toast.success("Community links saved");
+  }
+  async function addNew() {
+    if (!newName.trim() || !newPhone.trim()) return;
+    await addManager({ name: newName.trim(), phone: newPhone.trim() });
+    setNewName(""); setNewPhone("");
+    toast.success("Manager added");
+    load();
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <section>
+        <h2 className="text-2xl font-bold mb-3">Community links</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          Shown on every user's dashboard. Same link for everyone.
+        </p>
+        <div className="glass rounded-2xl p-5 space-y-3">
+          <label className="block">
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Send className="size-3.5" /> Telegram community URL</span>
+            <input value={links.telegram_url} onChange={(e) => setLinks({ ...links, telegram_url: e.target.value })}
+              className="mt-1 w-full h-11 px-3 rounded-lg bg-input border border-border font-mono text-sm" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5"><MessageCircle className="size-3.5" /> WhatsApp community URL</span>
+            <input value={links.whatsapp_url} onChange={(e) => setLinks({ ...links, whatsapp_url: e.target.value })}
+              className="mt-1 w-full h-11 px-3 rounded-lg bg-input border border-border font-mono text-sm" />
+          </label>
+          <button onClick={saveLinks} className="h-11 px-5 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-semibold">
+            Save links
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold mb-1">Personal managers</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          New users are auto-assigned a manager via round-robin (lowest assigned count).
+        </p>
+        <div className="glass rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-2">
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Manager name"
+            className="flex-1 h-11 px-3 rounded-lg bg-input border border-border text-sm" />
+          <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+254712345678"
+            className="flex-1 h-11 px-3 rounded-lg bg-input border border-border text-sm font-mono" />
+          <button onClick={addNew} className="h-11 px-4 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5">
+            <Plus className="size-4" /> Add
+          </button>
+        </div>
+        <div className="glass rounded-2xl divide-y divide-border/40">
+          {managers.map((m) => (
+            <div key={m.id} className="p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-10 rounded-xl bg-gold/20 flex items-center justify-center"><UserIcon className="size-5 text-gold" /></div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm">{m.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{m.phone}</p>
+                  <p className="text-[10px] text-muted-foreground">{m.assigned_count} assigned</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={async () => { await toggleManager(m.id, !m.active); load(); }}
+                  className={`px-3 h-9 rounded-lg text-xs font-semibold ${m.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                  {m.active ? "Active" : "Disabled"}
+                </button>
+                <button onClick={async () => { if (confirm("Delete this manager?")) { await deleteManager(m.id); load(); } }}
+                  className="size-9 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center"><Trash2 className="size-4" /></button>
+              </div>
+            </div>
+          ))}
+          {managers.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No managers yet. Add one above.</p>}
+        </div>
+      </section>
+    </div>
+  );
+}
