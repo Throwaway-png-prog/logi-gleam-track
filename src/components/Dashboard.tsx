@@ -203,6 +203,9 @@ export function Dashboard({ user, setUser, onLogout }: {
           <ChevronRight className="size-5" />
         </motion.button>
 
+        <CommunityPanel userId={user.id} />
+
+
         {/* Quick actions */}
         <div className="grid grid-cols-4 gap-3 mb-6">
           <Link to="/products" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
