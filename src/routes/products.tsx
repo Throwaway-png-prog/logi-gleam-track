@@ -41,6 +41,14 @@ function ProductsPage() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   function openProduct(p: Product) {
+    const required = vipForReward(p.points_reward);
+    const myVip = (user as any)?.vip_level ?? 0;
+    if (required > myVip) {
+      // Locked by VIP gate — bounce to unified VIP upgrade page with the
+      // required tier preselected.
+      navigate({ to: "/vip", search: { level: required } as any });
+      return;
+    }
     if (!hasAckedGuidelines()) { setPending(p); setShowGuidelines(true); return; }
     setSelected(p);
   }
