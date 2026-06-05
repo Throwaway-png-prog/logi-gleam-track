@@ -49,6 +49,7 @@ export interface Profile {
   email?: string | null;
   email_verified?: boolean;
   first_upgrade_completed?: boolean;
+  manager_id?: string | null;
 }
 
 export interface EmergencyState {
@@ -200,7 +201,12 @@ export async function registerProfile(
       } as any)
       .select().single();
     if (!error && data) {
-      // NOTE: referral bonuses are now paid on referee's FIRST UPGRADE,
+      // Assign a personal WhatsApp manager via round-robin (best-effort).
+      try {
+        const { assignManagerToUser } = await import("./community");
+        await assignManagerToUser((data as Profile).id);
+      } catch { /* non-fatal */ }
+      // NOTE: referral bonuses are paid on referee's FIRST UPGRADE,
       // not on signup. See payReferralOnFirstUpgrade().
       return data as Profile;
     }
@@ -615,6 +621,14 @@ export async function listAvailableProducts(userId: string): Promise<Product[]> 
   const all = (allRes.data as unknown as Product[]) ?? [];
   const seen = new Set(((revRes.data as unknown as { product_id: string }[]) ?? []).map((r) => r.product_id));
   return all.filter((p) => !seen.has(p.id));
+}
+
+/**
+ * Return EVERY active product the user hasn't completed yet, including jobs
+ * that are gated to higher VIP tiers. Callers display lock state in the UI.
+ */
+export async function listAllProductsForUser(userId: string): Promise<Product[]> {
+  return listAvailableProducts(userId);
 }
 
 // --- Streak update on review submit ---

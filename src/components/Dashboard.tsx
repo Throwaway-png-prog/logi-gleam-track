@@ -8,6 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { AppShell } from "./AppShell";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { SpinModal } from "./SpinModal";
+import { CommunityPanel } from "./CommunityPanel";
 import { getTodaysSpin } from "@/lib/spin";
 import {
   loadProfile, getMaintenance, setSessionId, listAvailableProducts, myReviews,
@@ -202,6 +203,9 @@ export function Dashboard({ user, setUser, onLogout }: {
           <ChevronRight className="size-5" />
         </motion.button>
 
+        <CommunityPanel userId={user.id} />
+
+
         {/* Quick actions */}
         <div className="grid grid-cols-4 gap-3 mb-6">
           <Link to="/products" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
@@ -306,7 +310,7 @@ export function Dashboard({ user, setUser, onLogout }: {
               ))}
             </ul>
             <Link
-              to="/upgrade"
+              to="/vip"
               className="w-full h-12 rounded-xl bg-gradient-gold text-gold-foreground font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition relative"
             >
               Upgrade to {nextTier.name} <ChevronRight className="size-4" />

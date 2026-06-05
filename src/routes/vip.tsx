@@ -15,12 +15,14 @@ import { formatKsh } from "@/lib/format";
 export const Route = createFileRoute("/vip")({
   component: VipPage,
   head: () => ({ meta: [{ title: "VIP Jobs — LogiBack Earn" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ level: typeof s.level === "string" ? Number(s.level) : (typeof s.level === "number" ? s.level : undefined) }),
   errorComponent: ({ error }) => <div className="p-6 text-sm text-destructive">Couldn't load VIP jobs: {error.message}</div>,
   notFoundComponent: () => <div className="p-6 text-sm">Not found.</div>,
 });
 
 function VipPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [user, setUser] = useState<Profile | null>(null);
   const [jobs, setJobs] = useState<VipJob[]>([]);
   const [todayDone, setTodayDone] = useState<VipCompletion[]>([]);
@@ -38,6 +40,12 @@ function VipPage() {
     setJobs(j); setTodayDone(t); setVip0Done(v0); setPending(pen);
     const fresh = await loadProfile(p.id);
     if (fresh) setUser(fresh);
+    // Preselect upgrade target from ?level= query (e.g. tapped a locked job)
+    const target = search?.level;
+    if (target && !pen) {
+      const job = j.find((x) => x.vip_level === target);
+      if (job) setUpgradeFor(job);
+    }
   }
 
   useEffect(() => {

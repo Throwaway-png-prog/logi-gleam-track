@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
   ArrowRight, ShoppingBag, Star, Wallet, ShieldCheck, Plus, Minus,
-  TrendingUp, Users, Quote, Smartphone, Lock, MapPin, Mail, Clock,
+  TrendingUp, Users, Quote, Lock, MapPin, Mail, Clock,
 } from "lucide-react";
 import { InstallPrompt, useIsStandalone } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
@@ -13,10 +13,10 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "LogiBack Earn — Kenya's Trusted Review Platform" },
-      { name: "description", content: "Get paid in real KSh to review products. Withdraw to M-Pesa instantly. Built in Kenya, trusted by thousands." },
-      { property: "og:title", content: "LogiBack Earn — Kenya's Trusted Review Platform" },
-      { property: "og:description", content: "Get paid in real KSh to review products. Withdraw to M-Pesa instantly." },
+      { title: "LogiBack International — Kenya Branch · Get paid to review" },
+      { name: "description", content: "LogiBack International. London HQ, Kenya Branch. Get paid in real KSh to review products. Withdraw to M-Pesa instantly. Trusted by 50,000+ users worldwide." },
+      { property: "og:title", content: "LogiBack International — Kenya Branch" },
+      { property: "og:description", content: "Trusted by 50,000+ users worldwide. Earn KSh reviewing products." },
       { name: "theme-color", content: "#0a1f17" },
     ],
   }),
@@ -44,10 +44,10 @@ const FAQ = [
 ];
 
 const TRUST = [
-  { icon: () => <span className="text-base" aria-label="Kenya">🇰🇪</span>, label: "Built in Kenya" },
+  { icon: () => <span className="text-base" aria-label="UK">🇬🇧</span>, label: "London HQ" },
+  { icon: () => <span className="text-base" aria-label="Kenya">🇰🇪</span>, label: "Nairobi Branch" },
   { icon: Lock, label: "Secured connection" },
-  { icon: Smartphone, label: "M-Pesa Payouts" },
-  { icon: Users, label: "Growing community" },
+  { icon: Users, label: "50,000+ users worldwide" },
 ];
 
 function Landing() {
@@ -95,7 +95,7 @@ function Landing() {
         <div className="relative max-w-6xl mx-auto px-5 pt-16 pb-24 w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-semibold mb-6">
-            <ShieldCheck className="size-3.5" /> Kenya's trusted review platform
+            <ShieldCheck className="size-3.5" /> Trusted by 50,000+ users worldwide
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -221,14 +221,14 @@ function Landing() {
           <div>
             <Logo size={36} />
             <p className="text-xs text-muted-foreground mt-3 max-w-xs">
-              Kenya's trusted review platform. We pay verified reviewers in KSh via M-Pesa.
+              LogiBack International. London HQ, Kenya Branch. We pay verified reviewers in KSh via M-Pesa.
             </p>
           </div>
           <div className="space-y-2 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Contact</p>
-            <p className="flex items-center gap-2"><MapPin className="size-3.5 text-gold" /> Nairobi, Kenya</p>
-            <p className="flex items-center gap-2"><Mail className="size-3.5 text-gold" /> support@logibackearn.app</p>
-            <p className="flex items-center gap-2"><Clock className="size-3.5 text-gold" /> Support: Mon–Fri, 9am–5pm EAT</p>
+            <p className="flex items-center gap-2"><MapPin className="size-3.5 text-gold" /><span>London HQ · Nairobi Branch</span></p>
+            <p className="flex items-center gap-2"><Mail className="size-3.5 text-gold" /><span>support@logibackearn.app</span></p>
+            <p className="flex items-center gap-2"><Clock className="size-3.5 text-gold" /><span>Support: Mon–Fri, 9am–5pm</span></p>
           </div>
           <div className="space-y-2 text-xs">
             <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Legal</p>

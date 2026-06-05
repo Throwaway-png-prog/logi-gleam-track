@@ -16,9 +16,6 @@ function AppEntry() {
 
   async function bootUser(p: Profile) {
     markLogin(p.id).catch(() => {});
-    if (typeof document !== "undefined" && p.theme_pref === "light") {
-      document.documentElement.classList.add("light");
-    }
     if (!p.interview_responses) {
       navigate({ to: "/onboarding" });
       return;

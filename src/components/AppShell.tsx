@@ -32,6 +32,16 @@ export function AppShell({ user, children }: { user: Profile; children: React.Re
   }
   useEffect(() => { refresh(); const t = setInterval(refresh, 60000); return () => clearInterval(t); /* eslint-disable-next-line */ }, [user.id]);
 
+  // Apply user's theme preference only while logged in. Landing/auth/register
+  // pages never mount AppShell, so they remain on the default (dark) palette.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const html = document.documentElement;
+    if (user.theme_pref === "light") html.classList.add("light");
+    else html.classList.remove("light");
+    return () => { html.classList.remove("light"); };
+  }, [user.theme_pref]);
+
   const unread = messages.filter((m) => !readIds.has(m.id)).length;
   const location = useLocation();
 
