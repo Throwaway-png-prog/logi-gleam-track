@@ -115,28 +115,48 @@ function ProductsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {filtered.map((p, i) => (
-              <motion.div key={p.id}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.3) }}
-                className="glass rounded-2xl overflow-hidden">
-                <button type="button" onClick={() => openProduct(p)} className="text-left block w-full active:scale-[0.98] transition">
-                  <div className="aspect-square bg-muted overflow-hidden relative">
-                    <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
-                    <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-gradient-gold text-gold-foreground text-[10px] font-bold shadow-gold">
-                      +{formatKsh(p.points_reward)}
+            {filtered.map((p, i) => {
+              const required = vipForReward(p.points_reward);
+              const myVip = (user as any)?.vip_level ?? 0;
+              const locked = required > myVip;
+              const band = rewardBandLabel(p.points_reward);
+              return (
+                <motion.div key={p.id}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                  className={`glass rounded-2xl overflow-hidden relative ${locked ? "opacity-95" : ""}`}>
+                  <button type="button" onClick={() => openProduct(p)} className="text-left block w-full active:scale-[0.98] transition">
+                    <div className="aspect-square bg-muted overflow-hidden relative">
+                      <img src={p.image_url} alt={p.name} loading="lazy" className={`w-full h-full object-cover ${locked ? "blur-[2px] brightness-50" : ""}`} />
+                      <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-gradient-gold text-gold-foreground text-[10px] font-bold shadow-gold">
+                        +{formatKsh(p.points_reward)}
+                      </div>
+                      <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                        band === "Premium" ? "bg-gold/90 text-gold-foreground" :
+                        band === "High" ? "bg-primary/90 text-primary-foreground" :
+                        band === "Medium" ? "bg-accent text-accent-foreground" : "bg-background/80 text-muted-foreground"
+                      }`}>{band}</div>
+                      {locked && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center px-3">
+                          <Lock className="size-7 text-gold drop-shadow" />
+                          <p className="text-[11px] font-bold text-white">Unlock at VIP {required}</p>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-gold text-gold-foreground font-bold flex items-center gap-1">
+                            <Crown className="size-3" /> Upgrade
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                      {p.platform} · <Star className="size-3 text-gold fill-gold" />
-                    </p>
-                    <p className="font-semibold text-sm line-clamp-1 mt-0.5">{p.name}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">{p.brand}</p>
-                    <p className="text-xs font-semibold mt-1">{formatKsh(p.price_ksh)}</p>
-                  </div>
-                </button>
-              </motion.div>
-            ))}
+                    <div className="p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        {p.platform} · <Star className="size-3 text-gold fill-gold" />
+                      </p>
+                      <p className="font-semibold text-sm line-clamp-1 mt-0.5">{p.name}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{p.brand}</p>
+                      <p className="text-xs font-semibold mt-1">{formatKsh(p.price_ksh)}</p>
+                    </div>
+                  </button>
+                </motion.div>
+              );
+            })}
             {filtered.length === 0 && (
               <p className="col-span-2 py-10 text-center text-sm text-muted-foreground">
                 {products.length === 0 ? "You've reviewed every available product. New batches drop daily." : "No products match your search."}
