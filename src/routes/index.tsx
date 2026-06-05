@@ -44,10 +44,10 @@ const FAQ = [
 ];
 
 const TRUST = [
-  { icon: () => <span className="text-base" aria-label="Kenya">🇰🇪</span>, label: "Built in Kenya" },
+  { icon: () => <span className="text-base" aria-label="UK">🇬🇧</span>, label: "London HQ" },
+  { icon: () => <span className="text-base" aria-label="Kenya">🇰🇪</span>, label: "Nairobi Branch" },
   { icon: Lock, label: "Secured connection" },
-  { icon: Smartphone, label: "M-Pesa Payouts" },
-  { icon: Users, label: "Growing community" },
+  { icon: Users, label: "50,000+ users worldwide" },
 ];
 
 function Landing() {
