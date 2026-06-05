@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
   ArrowRight, ShoppingBag, Star, Wallet, ShieldCheck, Plus, Minus,
-  TrendingUp, Users, Quote, Smartphone, Lock, MapPin, Mail, Clock,
+  TrendingUp, Users, Quote, Lock, MapPin, Mail, Clock,
 } from "lucide-react";
 import { InstallPrompt, useIsStandalone } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
