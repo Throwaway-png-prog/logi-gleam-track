@@ -49,6 +49,7 @@ export interface Profile {
   email?: string | null;
   email_verified?: boolean;
   first_upgrade_completed?: boolean;
+  manager_id?: string | null;
 }
 
 export interface EmergencyState {
