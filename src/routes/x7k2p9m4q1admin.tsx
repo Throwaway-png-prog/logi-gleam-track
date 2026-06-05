@@ -396,12 +396,25 @@ function ProductsTab() {
   }
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <h2 className="text-2xl font-bold">Products ({products.length})</h2>
-        <button onClick={() => setEditing({ active: true, points_reward: 100, est_minutes: "2-3 minutes" })}
-          className="h-10 px-4 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5">
-          <Plus className="size-4" /> Add
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          {[10, 50, 100].map((n) => (
+            <button key={n}
+              onClick={async () => {
+                if (!confirm(`Generate ${n} new product jobs?`)) return;
+                try { const added = await generateJobs(n); toast.success(`Created ${added} jobs`); load(); }
+                catch (e: any) { toast.error(e?.message ?? "Failed"); }
+              }}
+              className="h-10 px-3 rounded-lg glass text-xs font-semibold flex items-center gap-1.5">
+              <Wand2 className="size-3.5" /> +{n}
+            </button>
+          ))}
+          <button onClick={() => setEditing({ active: true, points_reward: 100, est_minutes: "2-3 minutes" })}
+            className="h-10 px-4 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5">
+            <Plus className="size-4" /> Add
+          </button>
+        </div>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {products.map((p) => (
