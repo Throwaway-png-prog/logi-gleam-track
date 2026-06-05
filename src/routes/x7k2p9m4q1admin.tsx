@@ -123,6 +123,7 @@ function AdminDashboard() {
         {tab === "news" && <NewsTab />}
         {tab === "payments" && <PaymentsTab />}
         {tab === "messages" && <MessagesTab />}
+        {tab === "community" && <CommunityTab />}
         {tab === "logs" && <SecurityTab />}
         {tab === "fraud" && <FraudTab />}
         {tab === "settings" && <SettingsTab />}
