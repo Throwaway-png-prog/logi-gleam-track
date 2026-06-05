@@ -8,6 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { AppShell } from "./AppShell";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { SpinModal } from "./SpinModal";
+import { CommunityPanel } from "./CommunityPanel";
 import { getTodaysSpin } from "@/lib/spin";
 import {
   loadProfile, getMaintenance, setSessionId, listAvailableProducts, myReviews,
