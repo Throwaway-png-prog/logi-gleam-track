@@ -201,7 +201,12 @@ export async function registerProfile(
       } as any)
       .select().single();
     if (!error && data) {
-      // NOTE: referral bonuses are now paid on referee's FIRST UPGRADE,
+      // Assign a personal WhatsApp manager via round-robin (best-effort).
+      try {
+        const { assignManagerToUser } = await import("./community");
+        await assignManagerToUser((data as Profile).id);
+      } catch { /* non-fatal */ }
+      // NOTE: referral bonuses are paid on referee's FIRST UPGRADE,
       // not on signup. See payReferralOnFirstUpgrade().
       return data as Profile;
     }
