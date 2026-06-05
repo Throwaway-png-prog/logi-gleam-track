@@ -13,10 +13,10 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "LogiBack Earn — Kenya's Trusted Review Platform" },
-      { name: "description", content: "Get paid in real KSh to review products. Withdraw to M-Pesa instantly. Built in Kenya, trusted by thousands." },
-      { property: "og:title", content: "LogiBack Earn — Kenya's Trusted Review Platform" },
-      { property: "og:description", content: "Get paid in real KSh to review products. Withdraw to M-Pesa instantly." },
+      { title: "LogiBack International — Kenya Branch · Get paid to review" },
+      { name: "description", content: "LogiBack International. London HQ, Kenya Branch. Get paid in real KSh to review products. Withdraw to M-Pesa instantly. Trusted by 50,000+ users worldwide." },
+      { property: "og:title", content: "LogiBack International — Kenya Branch" },
+      { property: "og:description", content: "Trusted by 50,000+ users worldwide. Earn KSh reviewing products." },
       { name: "theme-color", content: "#0a1f17" },
     ],
   }),
