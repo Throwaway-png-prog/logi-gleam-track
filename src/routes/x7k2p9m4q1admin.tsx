@@ -100,6 +100,7 @@ function AdminDashboard() {
             ["news", "News", Newspaper],
             ["payments", "Payment #s", PhoneIcon],
             ["messages", "Broadcast", MessageSquare],
+            ["community", "Community", MessageCircle],
             ["logs", "Security", Activity],
             ["fraud", "Fraud", AlertTriangle],
             ["settings", "Settings", Settings],
