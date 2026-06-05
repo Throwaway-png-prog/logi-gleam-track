@@ -95,7 +95,7 @@ function Landing() {
         <div className="relative max-w-6xl mx-auto px-5 pt-16 pb-24 w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-semibold mb-6">
-            <ShieldCheck className="size-3.5" /> Kenya's trusted review platform
+            <ShieldCheck className="size-3.5" /> Trusted by 50,000+ users worldwide
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
