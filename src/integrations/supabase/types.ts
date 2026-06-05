@@ -376,6 +376,36 @@ export type Database = {
         }
         Relationships: []
       }
+      managers: {
+        Row: {
+          active: boolean
+          assigned_count: number
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          whatsapp_url: string | null
+        }
+        Insert: {
+          active?: boolean
+          assigned_count?: number
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          whatsapp_url?: string | null
+        }
+        Update: {
+          active?: boolean
+          assigned_count?: number
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          whatsapp_url?: string | null
+        }
+        Relationships: []
+      }
       message_reads: {
         Row: {
           id: string
@@ -695,6 +725,7 @@ export type Database = {
           lifetime_earned: number
           lockout_until: string | null
           longest_streak: number
+          manager_id: string | null
           mpesa_number: string | null
           mpesa_verified: boolean
           phone: string
@@ -754,6 +785,7 @@ export type Database = {
           lifetime_earned?: number
           lockout_until?: string | null
           longest_streak?: number
+          manager_id?: string | null
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone: string
@@ -813,6 +845,7 @@ export type Database = {
           lifetime_earned?: number
           lockout_until?: string | null
           longest_streak?: number
+          manager_id?: string | null
           mpesa_number?: string | null
           mpesa_verified?: boolean
           phone?: string
@@ -838,7 +871,15 @@ export type Database = {
           warnings?: number
           worker_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       redemption_requests: {
         Row: {
@@ -993,8 +1034,10 @@ export type Database = {
           referral_max_count: number
           referrer_bonus_ksh: number
           registration_open: boolean
+          telegram_community_url: string | null
           updated_at: string
           upgrades_frozen: boolean
+          whatsapp_community_url: string | null
         }
         Insert: {
           emergency_active?: boolean
@@ -1011,8 +1054,10 @@ export type Database = {
           referral_max_count?: number
           referrer_bonus_ksh?: number
           registration_open?: boolean
+          telegram_community_url?: string | null
           updated_at?: string
           upgrades_frozen?: boolean
+          whatsapp_community_url?: string | null
         }
         Update: {
           emergency_active?: boolean
@@ -1029,8 +1074,10 @@ export type Database = {
           referral_max_count?: number
           referrer_bonus_ksh?: number
           registration_open?: boolean
+          telegram_community_url?: string | null
           updated_at?: string
           upgrades_frozen?: boolean
+          whatsapp_community_url?: string | null
         }
         Relationships: []
       }
