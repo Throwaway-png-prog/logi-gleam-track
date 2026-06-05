@@ -226,9 +226,9 @@ function Landing() {
           </div>
           <div className="space-y-2 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Contact</p>
-            <p className="flex items-center gap-2"><MapPin className="size-3.5 text-gold" /> Nairobi, Kenya</p>
-            <p className="flex items-center gap-2"><Mail className="size-3.5 text-gold" /> support@logibackearn.app</p>
-            <p className="flex items-center gap-2"><Clock className="size-3.5 text-gold" /> Support: Mon–Fri, 9am–5pm EAT</p>
+            <p className="flex items-center gap-2"><MapPin className="size-3.5 text-gold" /><span>London HQ · Nairobi Branch</span></p>
+            <p className="flex items-center gap-2"><Mail className="size-3.5 text-gold" /><span>support@logibackearn.app</span></p>
+            <p className="flex items-center gap-2"><Clock className="size-3.5 text-gold" /><span>Support: Mon–Fri, 9am–5pm</span></p>
           </div>
           <div className="space-y-2 text-xs">
             <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Legal</p>
