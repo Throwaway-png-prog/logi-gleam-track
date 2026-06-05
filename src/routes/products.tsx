@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Loader2, Star, X, Sparkles, BookOpen, RefreshCw, Lock, Crown } from "lucide-react";
 import { listAvailableProducts, getSessionId, loadProfile, type Product, type Profile } from "@/lib/api";
