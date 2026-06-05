@@ -15,6 +15,7 @@ import { formatKsh } from "@/lib/format";
 export const Route = createFileRoute("/vip")({
   component: VipPage,
   head: () => ({ meta: [{ title: "VIP Jobs — LogiBack Earn" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ level: typeof s.level === "string" ? Number(s.level) : (typeof s.level === "number" ? s.level : undefined) }),
   errorComponent: ({ error }) => <div className="p-6 text-sm text-destructive">Couldn't load VIP jobs: {error.message}</div>,
   notFoundComponent: () => <div className="p-6 text-sm">Not found.</div>,
 });
