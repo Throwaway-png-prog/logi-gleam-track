@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Loader2, Star, X, Sparkles, BookOpen, RefreshCw } from "lucide-react";
+import { Search, Loader2, Star, X, Sparkles, BookOpen, RefreshCw, Lock, Crown } from "lucide-react";
 import { listAvailableProducts, getSessionId, loadProfile, type Product, type Profile } from "@/lib/api";
 import { formatKsh } from "@/lib/format";
 import { shuffleForUser } from "@/lib/security";
+import { vipForReward, rewardBandLabel } from "@/lib/jobGenerator";
 import { AppShell } from "@/components/AppShell";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewGuidelinesModal, hasAckedGuidelines } from "@/components/ReviewGuidelinesModal";
