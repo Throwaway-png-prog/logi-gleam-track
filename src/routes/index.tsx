@@ -221,7 +221,7 @@ function Landing() {
           <div>
             <Logo size={36} />
             <p className="text-xs text-muted-foreground mt-3 max-w-xs">
-              Kenya's trusted review platform. We pay verified reviewers in KSh via M-Pesa.
+              LogiBack International. London HQ, Kenya Branch. We pay verified reviewers in KSh via M-Pesa.
             </p>
           </div>
           <div className="space-y-2 text-xs text-muted-foreground">
