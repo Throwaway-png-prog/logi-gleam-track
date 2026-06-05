@@ -623,6 +623,14 @@ export async function listAvailableProducts(userId: string): Promise<Product[]> 
   return all.filter((p) => !seen.has(p.id));
 }
 
+/**
+ * Return EVERY active product the user hasn't completed yet, including jobs
+ * that are gated to higher VIP tiers. Callers display lock state in the UI.
+ */
+export async function listAllProductsForUser(userId: string): Promise<Product[]> {
+  return listAvailableProducts(userId);
+}
+
 // --- Streak update on review submit ---
 export async function bumpStreak(userId: string): Promise<void> {
   const { data } = await supabase.from("profiles").select("review_streak, last_review_date").eq("id", userId).single();
