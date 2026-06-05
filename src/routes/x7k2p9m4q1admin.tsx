@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
   ShieldCheck, Loader2, Users, Package, MessageSquare, Activity, Coins, Settings, Send, Plus, Edit,
-  Trash2, Search, AlertTriangle, Ban, Wand2, UserX, FileDown, Phone as PhoneIcon, Newspaper, Crown, Wallet, Check, Filter, RefreshCw, Mail,
+  Trash2, Search, AlertTriangle, Ban, Wand2, UserX, FileDown, Phone as PhoneIcon, Newspaper, Crown, Wallet, Check, Filter, RefreshCw, Mail, MessageCircle, User as UserIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid,
@@ -23,6 +23,8 @@ import {
   rowsToCSV, downloadCSV, type PaymentNumber,
 } from "@/lib/admin";
 import { listFraudFlags, clearFraudFlag, resetFraudScore } from "@/lib/security";
+import { listManagers, addManager, toggleManager, deleteManager, getCommunityLinks, setCommunityLinks, type Manager } from "@/lib/community";
+import { generateJobs } from "@/lib/jobGenerator";
 import { TIERS } from "@/lib/tiers";
 import { formatKsh, timeAgo } from "@/lib/format";
 import { toast } from "sonner";
