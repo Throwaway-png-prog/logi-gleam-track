@@ -22,6 +22,7 @@ export const Route = createFileRoute("/vip")({
 
 function VipPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [user, setUser] = useState<Profile | null>(null);
   const [jobs, setJobs] = useState<VipJob[]>([]);
   const [todayDone, setTodayDone] = useState<VipCompletion[]>([]);
@@ -39,6 +40,12 @@ function VipPage() {
     setJobs(j); setTodayDone(t); setVip0Done(v0); setPending(pen);
     const fresh = await loadProfile(p.id);
     if (fresh) setUser(fresh);
+    // Preselect upgrade target from ?level= query (e.g. tapped a locked job)
+    const target = search?.level;
+    if (target && !pen) {
+      const job = j.find((x) => x.vip_level === target);
+      if (job) setUpgradeFor(job);
+    }
   }
 
   useEffect(() => {
