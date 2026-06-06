@@ -1,4 +1,4 @@
-// Community & manager utilities (Telegram/WhatsApp groups + personal manager pool).
+// Community & manager utilities (Telegram groups + personal Telegram manager pool).
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Manager {
@@ -6,6 +6,8 @@ export interface Manager {
   name: string;
   phone: string;
   whatsapp_url: string | null;
+  telegram_url: string | null;
+  telegram_handle: string | null;
   active: boolean;
   assigned_count: number;
   created_at: string;
@@ -14,27 +16,33 @@ export interface Manager {
 export interface CommunityLinks {
   telegram_url: string;
   whatsapp_url: string;
+  paybill_number: string;
+  paybill_label: string;
 }
 
 export async function getCommunityLinks(): Promise<CommunityLinks> {
   const { data } = await supabase
     .from("system_settings")
-    .select("telegram_community_url, whatsapp_community_url" as any)
+    .select("telegram_community_url, whatsapp_community_url, paybill_number, paybill_label" as any)
     .eq("id", 1)
     .maybeSingle();
   return {
     telegram_url: (data as any)?.telegram_community_url ?? "https://t.me/logiback",
     whatsapp_url: (data as any)?.whatsapp_community_url ?? "https://chat.whatsapp.com/logiback",
+    paybill_number: (data as any)?.paybill_number ?? "4123456",
+    paybill_label: (data as any)?.paybill_label ?? "LogiBack International Paybill",
   };
 }
 
-export async function setCommunityLinks(links: CommunityLinks): Promise<void> {
+export async function setCommunityLinks(links: Partial<CommunityLinks>): Promise<void> {
   await supabase
     .from("system_settings")
     .upsert({
       id: 1,
       telegram_community_url: links.telegram_url,
       whatsapp_community_url: links.whatsapp_url,
+      paybill_number: links.paybill_number,
+      paybill_label: links.paybill_label,
       updated_at: new Date().toISOString(),
     } as any);
 }
@@ -47,12 +55,14 @@ export async function listManagers(): Promise<Manager[]> {
   return (data as any) ?? [];
 }
 
-export async function addManager(args: { name: string; phone: string; whatsapp_url?: string }): Promise<void> {
-  const url = args.whatsapp_url ?? `https://wa.me/${args.phone.replace(/\D/g, "")}`;
+export async function addManager(args: { name: string; phone: string; telegram_handle?: string; whatsapp_url?: string }): Promise<void> {
+  const tg = args.telegram_handle?.replace(/^@/, "");
   await supabase.from("managers" as any).insert({
     name: args.name,
     phone: args.phone,
-    whatsapp_url: url,
+    whatsapp_url: args.whatsapp_url ?? `https://wa.me/${args.phone.replace(/\D/g, "")}`,
+    telegram_handle: tg ?? null,
+    telegram_url: tg ? `https://t.me/${tg}` : null,
     active: true,
   } as any);
 }
@@ -78,7 +88,6 @@ export async function pickNextManager(): Promise<Manager | null> {
   return (data as any) ?? null;
 }
 
-/** Assign a manager to the given user (no-op if already assigned). */
 export async function assignManagerToUser(userId: string): Promise<Manager | null> {
   const { data: prof } = await supabase
     .from("profiles")
@@ -87,10 +96,7 @@ export async function assignManagerToUser(userId: string): Promise<Manager | nul
     .maybeSingle();
   if ((prof as any)?.manager_id) {
     const { data: m } = await supabase
-      .from("managers" as any)
-      .select("*")
-      .eq("id", (prof as any).manager_id)
-      .maybeSingle();
+      .from("managers" as any).select("*").eq("id", (prof as any).manager_id).maybeSingle();
     return (m as any) ?? null;
   }
   const next = await pickNextManager();
@@ -105,16 +111,17 @@ export async function assignManagerToUser(userId: string): Promise<Manager | nul
 
 export async function getMyManager(userId: string): Promise<Manager | null> {
   const { data: prof } = await supabase
-    .from("profiles")
-    .select("manager_id" as any)
-    .eq("id", userId)
-    .maybeSingle();
+    .from("profiles").select("manager_id" as any).eq("id", userId).maybeSingle();
   const mid = (prof as any)?.manager_id;
   if (!mid) return assignManagerToUser(userId);
   const { data: m } = await supabase
-    .from("managers" as any)
-    .select("*")
-    .eq("id", mid)
-    .maybeSingle();
+    .from("managers" as any).select("*").eq("id", mid).maybeSingle();
   return (m as any) ?? null;
+}
+
+/** Preferred contact URL: Telegram if available, else WhatsApp fallback. */
+export function managerContactUrl(m: Manager): string {
+  if (m.telegram_url) return m.telegram_url;
+  if (m.telegram_handle) return `https://t.me/${m.telegram_handle.replace(/^@/, "")}`;
+  return m.whatsapp_url ?? `https://wa.me/${m.phone.replace(/\D/g, "")}`;
 }

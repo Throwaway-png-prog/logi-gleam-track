@@ -13,6 +13,7 @@ import { Route as X7k2p9m4q1adminRouteImport } from './routes/x7k2p9m4q1admin'
 import { Route as VipRouteImport } from './routes/vip'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as RedeemRouteImport } from './routes/redeem'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
@@ -21,6 +22,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AiTrainingRouteImport } from './routes/ai-training'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as JoinCodeRouteImport } from './routes/join.$code'
@@ -43,6 +45,11 @@ const UpgradeRoute = UpgradeRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamsRoute = TeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RedeemRoute = RedeemRouteImport.update({
@@ -85,6 +92,11 @@ const AiTrainingRoute = AiTrainingRouteImport.update({
   path: '/ai-training',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -103,6 +115,7 @@ const JoinCodeRoute = JoinCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/ai-training': typeof AiTrainingRoute
   '/app': typeof AppRoute
   '/news': typeof NewsRoute
@@ -111,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
+  '/teams': typeof TeamsRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/vip': typeof VipRoute
@@ -120,6 +134,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/ai-training': typeof AiTrainingRoute
   '/app': typeof AppRoute
   '/news': typeof NewsRoute
@@ -128,6 +143,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
+  '/teams': typeof TeamsRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/vip': typeof VipRoute
@@ -138,6 +154,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/ai-training': typeof AiTrainingRoute
   '/app': typeof AppRoute
   '/news': typeof NewsRoute
@@ -146,6 +163,7 @@ export interface FileRoutesById {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/redeem': typeof RedeemRoute
+  '/teams': typeof TeamsRoute
   '/terms': typeof TermsRoute
   '/upgrade': typeof UpgradeRoute
   '/vip': typeof VipRoute
@@ -157,6 +175,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/ai-training'
     | '/app'
     | '/news'
@@ -165,6 +184,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/redeem'
+    | '/teams'
     | '/terms'
     | '/upgrade'
     | '/vip'
@@ -174,6 +194,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/ai-training'
     | '/app'
     | '/news'
@@ -182,6 +203,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/redeem'
+    | '/teams'
     | '/terms'
     | '/upgrade'
     | '/vip'
@@ -191,6 +213,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/ai-training'
     | '/app'
     | '/news'
@@ -199,6 +222,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/redeem'
+    | '/teams'
     | '/terms'
     | '/upgrade'
     | '/vip'
@@ -209,6 +233,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AiTrainingRoute: typeof AiTrainingRoute
   AppRoute: typeof AppRoute
   NewsRoute: typeof NewsRoute
@@ -217,6 +242,7 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   RedeemRoute: typeof RedeemRoute
+  TeamsRoute: typeof TeamsRoute
   TermsRoute: typeof TermsRoute
   UpgradeRoute: typeof UpgradeRoute
   VipRoute: typeof VipRoute
@@ -252,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/teams': {
+      id: '/teams'
+      path: '/teams'
+      fullPath: '/teams'
+      preLoaderRoute: typeof TeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/redeem': {
@@ -310,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AiTrainingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -348,6 +388,7 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AiTrainingRoute: AiTrainingRoute,
   AppRoute: AppRoute,
   NewsRoute: NewsRoute,
@@ -356,6 +397,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   RedeemRoute: RedeemRoute,
+  TeamsRoute: TeamsRoute,
   TermsRoute: TermsRoute,
   UpgradeRoute: UpgradeRoute,
   VipRoute: VipRoute,
@@ -365,3 +407,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
