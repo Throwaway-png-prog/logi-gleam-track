@@ -5,30 +5,55 @@ import { Loader2, ExternalLink, Star, Upload, CheckCircle2, AlertCircle } from "
 import { submitReview, uploadScreenshot, bumpStreak, type Product, type Profile } from "@/lib/api";
 import { formatKsh } from "@/lib/format";
 
+// Job difficulty scales with the user's VIP tier:
+// VIP 0–1: rating + 10 words            (screenshot optional)
+// VIP 2–3: rating + 30 words + 1 shot
+// VIP 4–5: rating + 50 words + 2 shots + 3 Q/A
+function requirementsFor(vip: number) {
+  if (vip >= 4) return { minWords: 50, shots: 2, questions: 3 };
+  if (vip >= 2) return { minWords: 30, shots: 1, questions: 0 };
+  return { minWords: 10, shots: 0, questions: 0 };
+}
+
+const QUESTIONS = [
+  "What stood out most about the product?",
+  "Would you recommend it to a friend? Why?",
+  "What could the brand improve next?",
+];
+
 export function ReviewForm({ product, user, onDone }: { product: Product; user: Profile; onDone?: () => void }) {
   const [text, setText] = useState("");
   const [rating, setRating] = useState(0);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<string[]>(["", "", ""]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const charsOk = text.trim().length >= 30;
-  const canSubmit = charsOk && rating > 0 && file && !submitting;
+  const req = requirementsFor((user as any).vip_level ?? 0);
+  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  const wordsOk = wordCount >= req.minWords;
+  const shotsOk = files.length >= req.shots;
+  const questionsOk = req.questions === 0 || answers.slice(0, req.questions).every((a) => a.trim().length >= 5);
+  const canSubmit = wordsOk && rating > 0 && shotsOk && questionsOk && !submitting;
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    const list = Array.from(e.target.files ?? []);
+    if (!list.length) return;
+    setFiles((cur) => [...cur, ...list].slice(0, Math.max(req.shots, 2)));
+    setPreviews((cur) => [...cur, ...list.map((f) => URL.createObjectURL(f))].slice(0, Math.max(req.shots, 2)));
   }
 
   async function submit() {
     setSubmitting(true); setError(null);
     try {
-      const url = file ? await uploadScreenshot(user.id, file) : null;
-      await submitReview({ user_id: user.id, product, review_text: text.trim(), rating, screenshot_url: url });
+      const urls: string[] = [];
+      for (const f of files) urls.push(await uploadScreenshot(user.id, f));
+      const composed = req.questions > 0
+        ? text.trim() + "\n\n---\n" + answers.slice(0, req.questions).map((a, i) => `Q: ${QUESTIONS[i]}\nA: ${a.trim()}`).join("\n\n")
+        : text.trim();
+      await submitReview({ user_id: user.id, product, review_text: composed, rating, screenshot_url: urls[0] ?? null });
       await bumpStreak(user.id).catch(() => {});
       setDone(true);
     } catch (e) {
@@ -82,13 +107,18 @@ export function ReviewForm({ product, user, onDone }: { product: Product; user: 
       </a>
 
       <div className="glass rounded-2xl p-4">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Step 2 · Your review</label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs uppercase tracking-wider text-muted-foreground">Step 2 · Your review</label>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold/15 text-gold font-bold uppercase tracking-wider">
+            VIP {(user as any).vip_level ?? 0} · {req.minWords}+ words
+          </span>
+        </div>
         <textarea value={text} onChange={(e) => setText(e.target.value)}
           placeholder="Share your honest opinion — features, comparisons, shipping, packaging…"
           rows={5}
           className="mt-2 w-full p-3 rounded-xl bg-input border border-border focus:outline-none focus:ring-2 focus:ring-ring resize-none text-sm" />
         <div className="flex items-center justify-between mt-1.5 text-xs">
-          <span className={charsOk ? "text-success" : "text-muted-foreground"}>{text.trim().length}/30 minimum</span>
+          <span className={wordsOk ? "text-success" : "text-muted-foreground"}>{wordCount}/{req.minWords} words</span>
         </div>
       </div>
 
@@ -103,19 +133,43 @@ export function ReviewForm({ product, user, onDone }: { product: Product; user: 
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-4">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Step 4 · Screenshot of published review</label>
-        <label className="mt-2 block cursor-pointer">
-          <input type="file" accept="image/*" onChange={onPick} className="hidden" />
-          {preview ? (
-            <img src={preview} alt="Preview" className="w-full max-h-64 object-contain rounded-xl bg-background" />
-          ) : (
-            <div className="h-32 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-sm text-muted-foreground">
-              <Upload className="size-6 mb-1" /> Tap to upload screenshot
+      {req.shots > 0 && (
+        <div className="glass rounded-2xl p-4">
+          <label className="text-xs uppercase tracking-wider text-muted-foreground">
+            Step 4 · Upload {req.shots} screenshot{req.shots > 1 ? "s" : ""} ({files.length}/{req.shots})
+          </label>
+          <label className="mt-2 block cursor-pointer">
+            <input type="file" accept="image/*" multiple onChange={onPick} className="hidden" />
+            {previews.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {previews.map((p, i) => (
+                  <img key={i} src={p} alt="" className="w-full h-32 object-cover rounded-xl bg-background" />
+                ))}
+              </div>
+            ) : (
+              <div className="h-32 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-sm text-muted-foreground">
+                <Upload className="size-6 mb-1" /> Tap to upload
+              </div>
+            )}
+          </label>
+        </div>
+      )}
+
+      {req.questions > 0 && (
+        <div className="glass rounded-2xl p-4 space-y-3">
+          <label className="text-xs uppercase tracking-wider text-muted-foreground">Step 5 · Answer {req.questions} questions</label>
+          {QUESTIONS.slice(0, req.questions).map((q, i) => (
+            <div key={i}>
+              <p className="text-sm font-semibold mb-1.5">{q}</p>
+              <textarea
+                value={answers[i]} onChange={(e) => setAnswers((a) => a.map((v, j) => j === i ? e.target.value : v))}
+                rows={2} placeholder="Type your answer…"
+                className="w-full p-2.5 rounded-xl bg-input border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              />
             </div>
-          )}
-        </label>
-      </div>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">

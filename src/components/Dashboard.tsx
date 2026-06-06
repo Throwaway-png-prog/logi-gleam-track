@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Crown, ArrowUpRight, Wrench, Wallet, ShoppingBag, Sparkles, ChevronRight,
-  Star, UserCircle2, LogOut, Flame, Gift, Brain, Check,
+  Star, UserCircle2, LogOut, Flame, Gift, Brain, Check, Users,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { AppShell } from "./AppShell";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { SpinModal } from "./SpinModal";
 import { CommunityPanel } from "./CommunityPanel";
+import { NewsCarousel } from "./NewsCarousel";
 import { getTodaysSpin } from "@/lib/spin";
 import {
   loadProfile, getMaintenance, setSessionId, listAvailableProducts, myReviews,
@@ -203,26 +204,32 @@ export function Dashboard({ user, setUser, onLogout }: {
           <ChevronRight className="size-5" />
         </motion.button>
 
+        <NewsCarousel />
+
         <CommunityPanel userId={user.id} />
 
 
         {/* Quick actions */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-5 gap-2 mb-6">
           <Link to="/products" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center"><ShoppingBag className="size-5 text-primary" /></div>
-            <p className="text-xs font-semibold">Reviews</p>
+            <p className="text-[10px] font-semibold">Reviews</p>
           </Link>
           <Link to="/ai-training" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center"><Brain className="size-5 text-primary" /></div>
-            <p className="text-xs font-semibold">AI Hub</p>
+            <p className="text-[10px] font-semibold">AI Hub</p>
+          </Link>
+          <Link to="/teams" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
+            <div className="size-10 rounded-xl bg-gold/20 flex items-center justify-center"><Users className="size-5 text-gold" /></div>
+            <p className="text-[10px] font-semibold">Teams</p>
           </Link>
           <Link to="/redeem" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-gold/20 flex items-center justify-center"><Wallet className="size-5 text-gold" /></div>
-            <p className="text-xs font-semibold">Withdraw</p>
+            <p className="text-[10px] font-semibold">Cash out</p>
           </Link>
           <Link to="/profile" className="glass rounded-2xl p-3 flex flex-col items-center gap-1.5 active:scale-95 transition">
             <div className="size-10 rounded-xl bg-accent flex items-center justify-center"><UserCircle2 className="size-5 text-foreground" /></div>
-            <p className="text-xs font-semibold">Profile</p>
+            <p className="text-[10px] font-semibold">Profile</p>
           </Link>
         </div>
 

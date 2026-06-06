@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "export:db": "node scripts/export-db.mjs",
+    "restore:new-supabase": "node scripts/restore-db.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
