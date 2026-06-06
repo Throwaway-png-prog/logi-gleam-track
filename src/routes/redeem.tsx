@@ -22,6 +22,7 @@ function RedeemPage() {
   const [history, setHistory] = useState<RedemptionRequest[]>([]);
   const [onHold, setOnHold] = useState(false);
   const [minAmount, setMinAmount] = useState<number>(1000);
+  const [paybill, setPaybill] = useState<{ number: string; label: string }>({ number: "", label: "" });
   const [amount, setAmount] = useState<number>(0);
   const [custom, setCustom] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -38,6 +39,7 @@ function RedeemPage() {
     setHistory(h);
     setOnHold(s.redemptions_on_hold);
     setMinAmount(s.min_redemption_ksh);
+    setPaybill({ number: s.paybill_number, label: s.paybill_label });
   }
 
   useEffect(() => {
@@ -145,6 +147,16 @@ function RedeemPage() {
             <p className="text-xs text-muted-foreground">Processing time: 5–30 minutes.</p>
           </div>
         </motion.div>
+      )}
+
+      {paybill.number && (
+        <div className="mb-5 rounded-2xl glass border border-primary/30 p-4">
+          <p className="text-xs uppercase tracking-wider text-primary font-semibold">How you'll be paid</p>
+          <p className="text-sm mt-1">
+            After you submit, the admin will send your KSh via <strong>M-Pesa Paybill {paybill.number}</strong>
+            <span className="text-muted-foreground"> · {paybill.label}</span> to your registered number.
+          </p>
+        </div>
       )}
 
       <div className="glass rounded-2xl p-5 mb-5">

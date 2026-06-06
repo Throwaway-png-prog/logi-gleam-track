@@ -106,6 +106,75 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_ip_lockouts: {
+        Row: {
+          failed_count: number
+          id: string
+          ip_fingerprint: string
+          locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          failed_count?: number
+          id?: string
+          ip_fingerprint: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          failed_count?: number
+          id?: string
+          ip_fingerprint?: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          id: string
+          used: boolean
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          id?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          id?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      admin_security: {
+        Row: {
+          id: number
+          pin_hash: string | null
+          pin_set_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_training_completions: {
         Row: {
           created_at: string
@@ -384,6 +453,8 @@ export type Database = {
           id: string
           name: string
           phone: string
+          telegram_handle: string | null
+          telegram_url: string | null
           whatsapp_url: string | null
         }
         Insert: {
@@ -393,6 +464,8 @@ export type Database = {
           id?: string
           name: string
           phone: string
+          telegram_handle?: string | null
+          telegram_url?: string | null
           whatsapp_url?: string | null
         }
         Update: {
@@ -402,6 +475,8 @@ export type Database = {
           id?: string
           name?: string
           phone?: string
+          telegram_handle?: string | null
+          telegram_url?: string | null
           whatsapp_url?: string | null
         }
         Relationships: []
@@ -741,6 +816,7 @@ export type Database = {
           reviews_rejected: number
           role: string
           signup_date: string | null
+          team_id: string | null
           terms_accepted_at: string | null
           theme_pref: string
           tier: string
@@ -801,6 +877,7 @@ export type Database = {
           reviews_rejected?: number
           role?: string
           signup_date?: string | null
+          team_id?: string | null
           terms_accepted_at?: string | null
           theme_pref?: string
           tier?: string
@@ -861,6 +938,7 @@ export type Database = {
           reviews_rejected?: number
           role?: string
           signup_date?: string | null
+          team_id?: string | null
           terms_accepted_at?: string | null
           theme_pref?: string
           tier?: string
@@ -877,6 +955,13 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -1027,6 +1112,8 @@ export type Database = {
           id: number
           maintenance: boolean
           min_redemption_ksh: number
+          paybill_label: string | null
+          paybill_number: string | null
           payment_rotation_mode: string
           redemptions_frozen: boolean
           redemptions_on_hold: boolean
@@ -1047,6 +1134,8 @@ export type Database = {
           id?: number
           maintenance?: boolean
           min_redemption_ksh?: number
+          paybill_label?: string | null
+          paybill_number?: string | null
           payment_rotation_mode?: string
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
@@ -1067,6 +1156,8 @@ export type Database = {
           id?: number
           maintenance?: boolean
           min_redemption_ksh?: number
+          paybill_label?: string | null
+          paybill_number?: string | null
           payment_rotation_mode?: string
           redemptions_frozen?: boolean
           redemptions_on_hold?: boolean
@@ -1078,6 +1169,71 @@ export type Database = {
           updated_at?: string
           upgrades_frozen?: boolean
           whatsapp_community_url?: string | null
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          contribution_ksh: number
+          id: string
+          joined_at: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          contribution_ksh?: number
+          id?: string
+          joined_at?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          contribution_ksh?: number
+          id?: string
+          joined_at?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          bonus_pct: number
+          code: string
+          created_at: string
+          id: string
+          member_count: number
+          name: string
+          owner_id: string
+          total_earnings: number
+        }
+        Insert: {
+          bonus_pct?: number
+          code: string
+          created_at?: string
+          id?: string
+          member_count?: number
+          name: string
+          owner_id: string
+          total_earnings?: number
+        }
+        Update: {
+          bonus_pct?: number
+          code?: string
+          created_at?: string
+          id?: string
+          member_count?: number
+          name?: string
+          owner_id?: string
+          total_earnings?: number
         }
         Relationships: []
       }

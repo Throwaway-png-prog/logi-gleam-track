@@ -504,16 +504,21 @@ export async function rejectUpgrade(req: UpgradeRequest) {
 }
 
 // --- System settings ---
-export async function getSystemSettings(): Promise<{ maintenance: boolean; redemptions_on_hold: boolean; min_redemption_ksh: number }> {
-  const { data } = await supabase.from("system_settings").select("maintenance, redemptions_on_hold, min_redemption_ksh" as any).eq("id", 1).maybeSingle();
+export async function getSystemSettings(): Promise<{ maintenance: boolean; redemptions_on_hold: boolean; min_redemption_ksh: number; paybill_number: string; paybill_label: string }> {
+  const { data } = await supabase.from("system_settings").select("maintenance, redemptions_on_hold, min_redemption_ksh, paybill_number, paybill_label" as any).eq("id", 1).maybeSingle();
   return {
     maintenance: Boolean((data as any)?.maintenance),
     redemptions_on_hold: Boolean((data as any)?.redemptions_on_hold),
     min_redemption_ksh: Number((data as any)?.min_redemption_ksh ?? 1000),
+    paybill_number: String((data as any)?.paybill_number ?? "4123456"),
+    paybill_label: String((data as any)?.paybill_label ?? "LogiBack International Paybill"),
   };
 }
 export async function setMinRedemption(amount: number) {
   await supabase.from("system_settings").upsert({ id: 1, min_redemption_ksh: amount, updated_at: new Date().toISOString() } as any);
+}
+export async function setPaybill(number: string, label: string) {
+  await supabase.from("system_settings").upsert({ id: 1, paybill_number: number, paybill_label: label, updated_at: new Date().toISOString() } as any);
 }
 export async function softDeleteProduct(id: string) {
   await supabase.from("products" as any).update({ active: false } as any).eq("id", id);
