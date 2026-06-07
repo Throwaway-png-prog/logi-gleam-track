@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+shiet we have  to update it , give  me  full updated  code without changing  anything else just an update+ picture  and name  should match! import { supabase } from "@/integrations/supabase/client";
 
 export interface InterviewResponses {
   why: string;
@@ -247,66 +247,6 @@ export async function getProduct(id: string): Promise<Product | null> {
   return (data as unknown as Product) ?? null;
 }
 
-// --- Daily Product Refresh ---
-export async function ensureDailyProducts(): Promise<number> {
-  const today = new Date().toISOString().slice(0, 10);
-  
-  // Count active products created today
-  const { count } = await supabase
-    .from("products")
-    .select("*", { count: "exact", head: true })
-    .eq("active", true)
-    .gte("created_at", today);
-
-  const currentCount = count ?? 0;
-  
-  // If fewer than 30 active products today, generate more
-  if (currentCount < 30) {
-    const needed = 40 - currentCount; // Generate extra buffer
-    const { generateJobs } = await import("./jobGenerator");
-    const created = await generateJobs(needed);
-    return created;
-  }
-  
-  return 0;
-}
-
-export async function cleanupOldProducts(): Promise<number> {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-  // Deactivate products older than 7 days that have no reviews
-  const { data: oldProducts } = await supabase
-    .from("products")
-    .select("id")
-    .eq("active", true)
-    .lt("created_at", sevenDaysAgo.toISOString());
-    
-  if (!oldProducts || oldProducts.length === 0) return 0;
-  
-  const oldIds = (oldProducts as { id: string }[]).map(p => p.id);
-  
-  // Check which ones have reviews
-  const { data: reviewedProducts } = await supabase
-    .from("review_submissions")
-    .select("product_id")
-    .in("product_id", oldIds);
-    
-  const reviewedIds = new Set((reviewedProducts as any[] ?? []).map(r => r.product_id));
-  
-  // Only deactivate products with NO reviews
-  const toDeactivate = oldIds.filter(id => !reviewedIds.has(id));
-  
-  if (toDeactivate.length > 0) {
-    await supabase
-      .from("products")
-      .update({ active: false } as any)
-      .in("id", toDeactivate);
-  }
-  
-  return toDeactivate.length;
-}
-
 // --- Review submissions ---
 import { getTier, tierMultiplier } from "./tiers";
 import { bumpChallenge, evaluateAchievements } from "./gamification";
@@ -391,6 +331,7 @@ export async function approveReview(req: ReviewSubmission): Promise<void> {
   const { data: prof } = await supabase.from("profiles").select("*").eq("id", req.user_id).single();
   if (!prof) return;
   const p = prof as Profile;
+  const wasFirst = (p.reviews_approved ?? 0) === 0;
   const mult = tierMultiplier(p.tier);
   const basePayout = req.points_reward;
   const totalPayout = Math.round(basePayout * mult);
