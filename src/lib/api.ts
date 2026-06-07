@@ -37,7 +37,6 @@ export interface Profile {
   total_referral_earnings?: number;
   lifetime_earned?: number;
   terms_accepted_at?: string | null;
-  // New fields (tier progression + gamification)
   jobs_in_tier?: number;
   current_streak?: number;
   longest_streak?: number;
@@ -201,13 +200,10 @@ export async function registerProfile(
       } as any)
       .select().single();
     if (!error && data) {
-      // Assign a personal WhatsApp manager via round-robin (best-effort).
       try {
         const { assignManagerToUser } = await import("./community");
         await assignManagerToUser((data as Profile).id);
       } catch { /* non-fatal */ }
-      // NOTE: referral bonuses are paid on referee's FIRST UPGRADE,
-      // not on signup. See payReferralOnFirstUpgrade().
       return data as Profile;
     }
     if (error && !error.message.includes("worker_id")) throw error;
@@ -252,7 +248,6 @@ export async function getProduct(id: string): Promise<Product | null> {
 }
 
 // --- Review submissions ---
-// Per-job payout is tier-based. Gold/Platinum multipliers applied at approval.
 import { getTier, tierMultiplier } from "./tiers";
 import { bumpChallenge, evaluateAchievements } from "./gamification";
 
@@ -265,7 +260,6 @@ export async function submitReview(args: {
 }): Promise<ReviewSubmission> {
   const { data: prof } = await supabase.from("profiles").select("tier, jobs_in_tier").eq("id", args.user_id).single();
   const tier = getTier((prof as any)?.tier ?? "Starter");
-  // Enforce per-tier lifetime job limit
   const done = Number((prof as any)?.jobs_in_tier ?? 0);
   if (done >= tier.jobsInTier) {
     throw new Error(`You've completed all ${tier.jobsInTier} ${tier.name} jobs. Upgrade your tier to unlock more.`);
@@ -283,18 +277,15 @@ export async function submitReview(args: {
   } as any).select().single();
   if (error) throw error;
 
-  // Bump counters
   await supabase.from("profiles").update({
     units_today: ((prof as any)?.units_today ?? 0) + 1,
     jobs_in_tier: done + 1,
   } as any).eq("id", args.user_id);
 
-  // Track this product as seen for rotation
   await supabase.from("product_views" as any).upsert({
     user_id: args.user_id, product_id: args.product.id,
   } as any, { onConflict: "user_id,product_id" });
 
-  // Daily challenge: reviews_5
   bumpChallenge(args.user_id, "reviews_5", 1).catch(() => {});
 
   return data as unknown as ReviewSubmission;
@@ -345,7 +336,6 @@ export async function approveReview(req: ReviewSubmission): Promise<void> {
   const basePayout = req.points_reward;
   const totalPayout = Math.round(basePayout * mult);
   const bonus = totalPayout - basePayout;
-  // 2% chance lucky bonus +KSh 50
   const lucky = Math.random() < 0.02 ? 50 : 0;
   const finalPayout = totalPayout + lucky;
 
@@ -372,10 +362,6 @@ export async function approveReview(req: ReviewSubmission): Promise<void> {
     } as any);
   }
 
-  // Referral bonuses now pay on referee's first UPGRADE (see approveUpgrade),
-  // not on their first approved review.
-
-  // Re-evaluate achievements
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const { count: reviewsToday } = await supabase.from("review_submissions" as any)
     .select("*", { count: "exact", head: true })
@@ -434,7 +420,6 @@ export async function submitUpgrade(
   userId: string, requested_tier: string, amount_paid: number, transaction_code: string,
   payment_number_id?: string | null,
 ) {
-  // Validate + dedupe M-Pesa code globally (throws on duplicate)
   const { reserveMpesaCode } = await import("./security");
   const code = await reserveMpesaCode({
     code: transaction_code, user_id: userId, used_for: `upgrade:${requested_tier}`, amount_ksh: amount_paid,
@@ -494,7 +479,6 @@ export async function approveUpgrade(req: UpgradeRequest) {
     body: `Your tier upgrade is approved. ${newTier.perks.join(" · ")}`,
     audience: "user", audience_value: p.id,
   } as any);
-  // Pay referral bonuses ONLY on referee's first upgrade
   if (wasFirstUpgrade && p.referred_by) {
     payReferralOnFirstUpgrade(p.id, p.referred_by).catch(() => {});
   }
@@ -514,6 +498,55 @@ export async function getSystemSettings(): Promise<{ maintenance: boolean; redem
     paybill_label: String((data as any)?.paybill_label ?? "LogiBack International Paybill"),
   };
 }
+
+// --- Withdrawal Window ---
+export async function getWithdrawalWindow(): Promise<{
+  day: string;
+  start_time: string;
+  end_time: string;
+  enabled: boolean;
+  is_open: boolean;
+}> {
+  const { data, error } = await supabase
+    .from("system_settings")
+    .select("withdrawal_day, withdrawal_start_time, withdrawal_end_time, withdrawals_enabled")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { 
+      day: "Friday", 
+      start_time: "10:00", 
+      end_time: "16:00", 
+      enabled: false, 
+      is_open: false 
+    };
+  }
+
+  const d = data as any;
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const now = new Date();
+  const startParts = (d.withdrawal_start_time || "10:00").split(":");
+  const endParts = (d.withdrawal_end_time || "16:00").split(":");
+  const startMin = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+  const endMin = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  const is_open =
+    d.withdrawals_enabled === true &&
+    today === (d.withdrawal_day || "Friday") &&
+    nowMin >= startMin &&
+    nowMin <= endMin;
+
+  return {
+    day: d.withdrawal_day || "Friday",
+    start_time: d.withdrawal_start_time || "10:00",
+    end_time: d.withdrawal_end_time || "16:00",
+    enabled: d.withdrawals_enabled === true,
+    is_open,
+  };
+}
+
 export async function setMinRedemption(amount: number) {
   await supabase.from("system_settings").upsert({ id: 1, min_redemption_ksh: amount, updated_at: new Date().toISOString() } as any);
 }
@@ -603,7 +636,6 @@ export async function rejectRedemption(req: RedemptionRequest) {
     } as any);
   }
 }
-/** Auto-approve pending requests whose auto_approve_at has passed (small amounts only). */
 export async function processAutoApprovals(): Promise<number> {
   const now = new Date().toISOString();
   const { data } = await supabase.from("redemption_requests" as any)
@@ -617,7 +649,7 @@ export function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// --- Products with rotation (exclude pending + APPROVED permanently; rejected can reappear) ---
+// --- Products with rotation ---
 export async function listAvailableProducts(userId: string): Promise<Product[]> {
   const [allRes, revRes] = await Promise.all([
     supabase.from("products" as any).select("*").eq("active", true).order("created_at", { ascending: true }),
@@ -628,15 +660,11 @@ export async function listAvailableProducts(userId: string): Promise<Product[]> 
   return all.filter((p) => !seen.has(p.id));
 }
 
-/**
- * Return EVERY active product the user hasn't completed yet, including jobs
- * that are gated to higher VIP tiers. Callers display lock state in the UI.
- */
 export async function listAllProductsForUser(userId: string): Promise<Product[]> {
   return listAvailableProducts(userId);
 }
 
-// --- Streak update on review submit ---
+// --- Streak update ---
 export async function bumpStreak(userId: string): Promise<void> {
   const { data } = await supabase.from("profiles").select("review_streak, last_review_date").eq("id", userId).single();
   if (!data) return;
@@ -795,18 +823,15 @@ async function getReferralBonuses(): Promise<{ referrer: number; referee: number
   };
 }
 
-/** Credit referrer immediately when a new user signs up using their code. */
 async function _creditReferrerOnSignup(referredId: string, referrerId: string): Promise<void> {
   const { referrer: amt } = await getReferralBonuses();
   const { data: referrer } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
   if (!referrer) return;
   const r = referrer as Profile;
-  // Enforce referral cap
   const { data: cap } = await supabase.from("system_settings").select("referral_max_count" as any).eq("id", 1).maybeSingle();
   const maxRefs = Number((cap as any)?.referral_max_count ?? 5);
   const current = Number((r as any).referral_count ?? 0);
   if (current >= maxRefs) {
-    // Cap reached — no bonus
     await supabase.from("messages" as any).insert({
       title: "Referral cap reached", body: `A friend joined using your link, but you've reached the maximum referral bonus (${maxRefs}/${maxRefs}). Thank you for your support.`,
       audience: "user", audience_value: referrerId,
@@ -828,11 +853,9 @@ async function _creditReferrerOnSignup(referredId: string, referrerId: string): 
     title: "Referral bonus", body: `A friend joined using your link. KSh ${amt} added to your balance. (${current + 1}/${maxRefs})`,
     audience: "user", audience_value: referrerId,
   } as any);
-  // Daily challenge for referrer
   await import("./gamification").then((m) => m.bumpChallenge(referrerId, "refer_1", 1)).catch(() => {});
 }
 
-/** Credit referee's welcome bonus when they complete their first approved review. */
 async function _creditRefereeOnFirstReview(referredId: string, referrerId: string): Promise<void> {
   const { referee: amt } = await getReferralBonuses();
   const { data: referred } = await supabase.from("profiles").select("*").eq("id", referredId).single();
@@ -1020,11 +1043,9 @@ export async function recordTierUpgrade(userId: string, fromTier: string, toTier
   } as any);
 }
 
-
 // --- Referral payout on referee's first upgrade ---
 export async function payReferralOnFirstUpgrade(referredId: string, referrerId: string): Promise<void> {
   const { referrer: refrAmt, referee: refeAmt } = await getReferralBonuses();
-  // Cap check
   const { data: cap } = await supabase.from("system_settings").select("referral_max_count" as any).eq("id", 1).maybeSingle();
   const maxRefs = Number((cap as any)?.referral_max_count ?? 5);
   const { data: rRow } = await supabase.from("profiles").select("*").eq("id", referrerId).single();
@@ -1032,7 +1053,6 @@ export async function payReferralOnFirstUpgrade(referredId: string, referrerId: 
   const r = rRow as Profile;
   const current = Number((r as any).referral_count ?? 0);
   if (current >= maxRefs) return;
-  // Credit referrer
   await supabase.from("profiles").update({
     points: r.points + refrAmt,
     total_referral_earnings: Number(r.total_referral_earnings ?? 0) + refrAmt,
@@ -1049,7 +1069,6 @@ export async function payReferralOnFirstUpgrade(referredId: string, referrerId: 
     body: `Your referral upgraded. KSh ${refrAmt} added to your balance.`,
     audience: "user", audience_value: referrerId,
   } as any);
-  // Credit referee welcome
   const { data: refdRow } = await supabase.from("profiles").select("*").eq("id", referredId).single();
   if (refdRow) {
     const refd = refdRow as Profile;
@@ -1068,7 +1087,6 @@ export async function payReferralOnFirstUpgrade(referredId: string, referrerId: 
   }
 }
 
-/** Pending referrals: referees who signed up but haven't completed first upgrade yet. */
 export async function pendingReferralCount(userId: string): Promise<number> {
   const { data } = await supabase.from("profiles").select("id, first_upgrade_completed").eq("referred_by", userId);
   return ((data as any[]) ?? []).filter((p) => !p.first_upgrade_completed).length;
@@ -1084,8 +1102,6 @@ export async function requestEmailOtp(userId: string, email: string): Promise<{ 
     user_id: userId, email, code, expires_at: expires,
   } as any);
   await supabase.from("profiles").update({ email } as any).eq("id", userId);
-  // NOTE: SMTP not configured — return code to UI so user can complete the flow.
-  // Replace this with a real email send when an email provider is connected.
   return { devCode: code };
 }
 
