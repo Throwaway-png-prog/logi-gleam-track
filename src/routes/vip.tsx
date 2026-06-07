@@ -20,6 +20,18 @@ export const Route = createFileRoute("/vip")({
   notFoundComponent: () => <div className="p-6 text-sm">Not found.</div>,
 });
 
+function getVipLevel(tier: string): number {
+  const map: Record<string, number> = {
+    'Starter': 0, 'VIP 0': 0,
+    'Operator': 1, 'VIP 1': 1,
+    'Controller': 2, 'VIP 2': 2,
+    'Supervisor': 3, 'VIP 3': 3,
+    'Elite': 4, 'VIP 4': 4,
+    'VIP 5': 5,
+  };
+  return map[tier] ?? 0;
+}
+
 function VipPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
@@ -40,7 +52,6 @@ function VipPage() {
     setJobs(j); setTodayDone(t); setVip0Done(v0); setPending(pen);
     const fresh = await loadProfile(p.id);
     if (fresh) setUser(fresh);
-    // Preselect upgrade target from ?level= query (e.g. tapped a locked job)
     const target = search?.level;
     if (target && !pen) {
       const job = j.find((x) => x.vip_level === target);
@@ -63,7 +74,7 @@ function VipPage() {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>;
   }
 
-  const vipLevel = (user as any).vip_level ?? 0;
+  const vipLevel = getVipLevel(user.tier);
 
   async function handleComplete(payload: unknown) {
     if (!activeTask || !user) return;
