@@ -3,11 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
   ShieldCheck, Loader2, Users, Package, MessageSquare, Activity, Coins, Settings, Send, Plus, Edit,
-  Trash2, Search, AlertTriangle, Ban, Wand2, UserX, FileDown, Phone as PhoneIcon, Newspaper, Crown, Wallet, Check, Filter, RefreshCw, Mail, MessageCircle, User as UserIcon,
+  Trash2, Search, AlertTriangle, Ban, Wand2, UserX, FileDown, Phone as PhoneIcon, Newspaper, Crown, Wallet, Check, Filter, RefreshCw, Mail, MessageCircle, User as UserIcon, X,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid,
 } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 import {
   listProfiles, adminUpsertProduct, sendMessage, getSystemSettings, setMaintenance, setRedemptionsOnHold,
   setRegistrationOpen, getRegistrationOpen, listProducts, startEmergency, stopEmergency,
@@ -73,7 +74,7 @@ function AdminPanel() {
   return <AdminDashboard />;
 }
 
-type Tab = "analytics" | "users" | "products" | "reviews" | "redemptions" | "news" | "payments" | "messages" | "community" | "logs" | "fraud" | "settings";
+type Tab = "analytics" | "users" | "products" | "reviews" | "upgrades" | "redemptions" | "news" | "payments" | "messages" | "community" | "logs" | "fraud" | "settings";
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("analytics");
@@ -96,6 +97,7 @@ function AdminDashboard() {
             ["users", "Users", Users],
             ["products", "Products", Package],
             ["reviews", "Reviews", MessageSquare],
+            ["upgrades", "Upgrades", Crown],
             ["redemptions", "Withdrawals", Wallet],
             ["news", "News", Newspaper],
             ["payments", "Payment #s", PhoneIcon],
@@ -119,6 +121,7 @@ function AdminDashboard() {
         {tab === "users" && <UsersTab />}
         {tab === "products" && <ProductsTab />}
         {tab === "reviews" && <ReviewsTab />}
+        {tab === "upgrades" && <UpgradesTab />}
         {tab === "redemptions" && <RedemptionsTab />}
         {tab === "news" && <NewsTab />}
         {tab === "payments" && <PaymentsTab />}
@@ -457,6 +460,213 @@ function ProductsTab() {
               <button onClick={save} className="flex-1 h-11 rounded-lg bg-gradient-primary text-primary-foreground font-semibold">Save</button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UpgradesTab() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const { data: vipReqs } = await supabase
+      .from("vip_upgrade_requests")
+      .select("*, profiles!vip_upgrade_requests_user_id_fkey(display_name, phone, tier)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    
+    const { data: oldReqs } = await supabase
+      .from("upgrade_requests")
+      .select("*, profiles!upgrade_requests_user_id_fkey(display_name, phone, tier)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    const combined = [
+      ...(vipReqs || []).map((r: any) => ({
+        ...r,
+        source: "vip",
+        display_name: r.profiles?.display_name || "Unknown",
+        phone: r.profiles?.phone || "",
+        current_tier: r.profiles?.tier || "Starter",
+        transaction_code: r.mpesa_code || "",
+      })),
+      ...(oldReqs || []).map((r: any) => ({
+        ...r,
+        source: "old",
+        display_name: r.profiles?.display_name || "Unknown",
+        phone: r.profiles?.phone || "",
+        current_tier: r.profiles?.tier || "Starter",
+        mpesa_code: r.transaction_code || "",
+      })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    setRows(combined);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function approve(req: any) {
+    setBusyId(req.id);
+    try {
+      if (req.source === "vip") {
+        await supabase.from("vip_upgrade_requests").update({ 
+          status: "approved", 
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: "admin" 
+        }).eq("id", req.id);
+      } else {
+        await supabase.from("upgrade_requests").update({ 
+          status: "approved" 
+        }).eq("id", req.id);
+      }
+      
+      await supabase.from("profiles").update({ 
+        tier: req.requested_tier,
+        upgraded_at: new Date().toISOString()
+      }).eq("id", req.user_id);
+      
+      const bonuses: Record<string, number> = {
+        "VIP 1": 200, "Operator": 200,
+        "VIP 2": 500, "Controller": 500,
+        "VIP 3": 1000, "Supervisor": 1000,
+        "VIP 4": 3000, "Elite": 3000,
+        "VIP 5": 5000,
+      };
+      const bonus = bonuses[req.requested_tier] || 0;
+      if (bonus > 0) {
+        const { data: prof } = await supabase.from("profiles").select("points").eq("id", req.user_id).single();
+        const newPoints = (prof?.points || 0) + bonus;
+        await supabase.from("profiles").update({ points: newPoints }).eq("id", req.user_id);
+        await supabase.from("points_transactions").insert({
+          user_id: req.user_id,
+          delta: bonus,
+          reason: `${req.requested_tier} welcome bonus`,
+        });
+      }
+      
+      await supabase.from("messages").insert({
+        title: "Upgrade Approved!",
+        body: `Congratulations! Your upgrade to ${req.requested_tier} has been approved.${bonus > 0 ? ` KSh ${bonus} welcome bonus added.` : ""}`,
+        audience: "user",
+        audience_value: req.user_id,
+      });
+      
+      toast.success(`Approved ${req.requested_tier} for ${req.display_name}`);
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to approve");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function reject(req: any) {
+    const reason = prompt("Reason for rejection?", "Invalid M-Pesa code");
+    if (!reason) return;
+    setBusyId(req.id);
+    try {
+      if (req.source === "vip") {
+        await supabase.from("vip_upgrade_requests").update({ 
+          status: "rejected",
+          admin_notes: reason,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: "admin"
+        }).eq("id", req.id);
+      } else {
+        await supabase.from("upgrade_requests").update({ 
+          status: "rejected" 
+        }).eq("id", req.id);
+      }
+      
+      await supabase.from("messages").insert({
+        title: "Upgrade Request Declined",
+        body: `Your upgrade request was not approved. Reason: ${reason}. Please contact support if you believe this is an error.`,
+        audience: "user",
+        audience_value: req.user_id,
+      });
+      
+      toast.success("Rejected");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to reject");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Upgrade Requests ({rows.length})</h2>
+        <button onClick={load} className="h-9 px-3 rounded-lg glass text-xs font-semibold flex items-center gap-1.5">
+          <RefreshCw className="size-3.5" /> Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="size-6 animate-spin" /></div>
+      ) : rows.length === 0 ? (
+        <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">No pending upgrade requests.</div>
+      ) : (
+        <div className="space-y-3">
+          {rows.map((r) => (
+            <div key={`${r.source}-${r.id}`} className="glass rounded-2xl p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-lg">{r.display_name}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gold/15 text-gold font-mono">{r.phone}</span>
+                    {r.source === "vip" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">VIP</span>}
+                  </div>
+                  
+                  <div className="flex items-center gap-3 text-sm mt-2">
+                    <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground">{r.current_tier}</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="px-2 py-0.5 rounded bg-gold/20 text-gold font-semibold">{r.requested_tier}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">M-Pesa Code</p>
+                      <p className="font-mono font-semibold">{r.mpesa_code || r.transaction_code || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Amount Paid</p>
+                      <p className="font-bold text-gradient-gold">KSh {Number(r.amount_paid || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Submitted</p>
+                      <p>{timeAgo(r.created_at)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 mt-4 pt-3 border-t border-border/40">
+                <button
+                  onClick={() => approve(r)}
+                  disabled={busyId === r.id}
+                  className="flex-1 h-11 rounded-xl bg-gradient-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {busyId === r.id ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                  Approve
+                </button>
+                <button
+                  onClick={() => reject(r)}
+                  disabled={busyId === r.id}
+                  className="flex-1 h-11 rounded-xl bg-destructive/15 text-destructive font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <X className="size-4" />
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
