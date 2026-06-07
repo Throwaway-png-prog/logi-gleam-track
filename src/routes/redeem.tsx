@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowLeft, Wallet, Loader2, CheckCircle2, AlertCircle, Clock, History, Mail } from "lucide-react";
 import {
-  getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings, calcWithdrawalFee, calcAutoApproveAt,
+  getSessionId, loadProfile, submitRedemption, myRedemptions, getSystemSettings, calcWithdrawalFee, calcAutoApproveAt, getWithdrawalWindow,
   type Profile, type RedemptionRequest,
 } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
@@ -28,18 +28,23 @@ function RedeemPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [windowInfo, setWindowInfo] = useState<{
+    day: string; start_time: string; end_time: string; enabled: boolean; is_open: boolean;
+  } | null>(null);
 
   async function refresh(id: string) {
-    const [p, h, s] = await Promise.all([
+    const [p, h, s, w] = await Promise.all([
       loadProfile(id),
       myRedemptions(id),
       getSystemSettings(),
+      getWithdrawalWindow(),
     ]);
     if (p) setUser(p);
     setHistory(h);
     setOnHold(s.redemptions_on_hold);
     setMinAmount(s.min_redemption_ksh);
     setPaybill({ number: s.paybill_number, label: s.paybill_label });
+    setWindowInfo(w);
   }
 
   useEffect(() => {
@@ -63,7 +68,7 @@ function RedeemPage() {
   const slaHours = finalAmount >= 20000 ? 48 : finalAmount >= 5000 ? null : 24;
 
   const emailVerified = Boolean(user?.email_verified);
-  const valid = user && emailVerified && finalAmount >= minAmount && totalDebit <= user.points && !onHold;
+  const valid = user && emailVerified && finalAmount >= minAmount && totalDebit <= user.points && !onHold && (windowInfo?.is_open ?? false);
 
   async function submit() {
     if (!user || !valid) return;
@@ -112,6 +117,32 @@ function RedeemPage() {
           </div>
         </div>
       </motion.div>
+
+      {windowInfo && !windowInfo.is_open && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-gold/50 bg-gold/10 p-4">
+          <Clock className="size-5 text-gold shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm">Withdrawal window is closed</p>
+            <p className="text-xs text-muted-foreground">
+              Withdrawals are only processed on <strong>{windowInfo.day}s</strong> between{" "}
+              <strong>{windowInfo.start_time}</strong> and <strong>{windowInfo.end_time}</strong>.
+              {!windowInfo.enabled && " The admin has temporarily disabled withdrawals."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {windowInfo && windowInfo.is_open && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-4">
+          <CheckCircle2 className="size-5 text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm">Withdrawal window is OPEN</p>
+            <p className="text-xs text-muted-foreground">
+              Submit your request now. Window closes at <strong>{windowInfo.end_time}</strong>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {onHold && (
         <div className="mb-5 flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4">
