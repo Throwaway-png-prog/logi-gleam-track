@@ -473,36 +473,37 @@ function UpgradesTab() {
 
   async function load() {
     setLoading(true);
+    
     const { data: vipReqs } = await supabase
       .from("vip_upgrade_requests")
-      .select("*, profiles!vip_upgrade_requests_user_id_fkey(display_name, phone, tier)")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
-    
-    const { data: oldReqs } = await supabase
-      .from("upgrade_requests")
-      .select("*, profiles!upgrade_requests_user_id_fkey(display_name, phone, tier)")
+      .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: false });
 
-    const combined = [
-      ...(vipReqs || []).map((r: any) => ({
+    const allUserIds = (vipReqs || []).map((r: any) => r.user_id);
+    
+    const { data: profiles } = allUserIds.length > 0 
+      ? await supabase.from("profiles").select("id, display_name, phone, tier").in("id", allUserIds)
+      : { data: [] };
+    
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+    const vipNames: Record<number, string> = {
+      0: 'VIP 0', 1: 'VIP 1', 2: 'VIP 2', 3: 'VIP 3', 4: 'VIP 4', 5: 'VIP 5'
+    };
+
+    const combined = (vipReqs || []).map((r: any) => {
+      const prof = profileMap.get(r.user_id) || {};
+      return {
         ...r,
-        source: "vip",
-        display_name: r.profiles?.display_name || "Unknown",
-        phone: r.profiles?.phone || "",
-        current_tier: r.profiles?.tier || "Starter",
-        transaction_code: r.mpesa_code || "",
-      })),
-      ...(oldReqs || []).map((r: any) => ({
-        ...r,
-        source: "old",
-        display_name: r.profiles?.display_name || "Unknown",
-        phone: r.profiles?.phone || "",
-        current_tier: r.profiles?.tier || "Starter",
+        display_name: prof.display_name || "Unknown",
+        phone: prof.phone || "",
+        current_tier: prof.tier || "Starter",
+        requested_tier: vipNames[r.to_vip] || `VIP ${r.to_vip}`,
         mpesa_code: r.transaction_code || "",
-      })),
-    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        amount_paid: r.amount_ksh,
+      };
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     setRows(combined);
     setLoading(false);
@@ -513,56 +514,42 @@ function UpgradesTab() {
   async function approve(req: any) {
     setBusyId(req.id);
     try {
-      if (req.source === "vip") {
-        await supabase.from("vip_upgrade_requests").update({ 
-          status: "approved", 
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: "admin" 
-        }).eq("id", req.id);
-      } else {
-        await supabase.from("upgrade_requests").update({ 
-          status: "approved" 
-        }).eq("id", req.id);
-      }
+      await supabase.from("vip_upgrade_requests").update({ 
+        status: "approved", 
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: "admin" 
+      }).eq("id", req.id);
       
       await supabase.from("profiles").update({ 
         tier: req.requested_tier,
+        vip_level: req.to_vip,
         upgraded_at: new Date().toISOString()
       }).eq("id", req.user_id);
       
-      const bonuses: Record<string, number> = {
-        "VIP 1": 200, "Operator": 200,
-        "VIP 2": 500, "Controller": 500,
-        "VIP 3": 1000, "Supervisor": 1000,
-        "VIP 4": 3000, "Elite": 3000,
-        "VIP 5": 5000,
+      const bonuses: Record<number, number> = {
+        1: 200, 2: 500, 3: 1000, 4: 3000, 5: 5000,
       };
-      const bonus = bonuses[req.requested_tier] || 0;
+      const bonus = bonuses[req.to_vip] || 0;
       if (bonus > 0) {
         const { data: prof } = await supabase.from("profiles").select("points").eq("id", req.user_id).single();
         const newPoints = (prof?.points || 0) + bonus;
         await supabase.from("profiles").update({ points: newPoints }).eq("id", req.user_id);
         await supabase.from("points_transactions").insert({
-          user_id: req.user_id,
-          delta: bonus,
-          reason: `${req.requested_tier} welcome bonus`,
+          user_id: req.user_id, delta: bonus, reason: `VIP ${req.to_vip} welcome bonus`,
         });
       }
       
       await supabase.from("messages").insert({
         title: "Upgrade Approved!",
         body: `Congratulations! Your upgrade to ${req.requested_tier} has been approved.${bonus > 0 ? ` KSh ${bonus} welcome bonus added.` : ""}`,
-        audience: "user",
-        audience_value: req.user_id,
+        audience: "user", audience_value: req.user_id,
       });
       
       toast.success(`Approved ${req.requested_tier} for ${req.display_name}`);
       load();
     } catch (e: any) {
       toast.error(e?.message || "Failed to approve");
-    } finally {
-      setBusyId(null);
-    }
+    } finally { setBusyId(null); }
   }
 
   async function reject(req: any) {
@@ -570,33 +557,22 @@ function UpgradesTab() {
     if (!reason) return;
     setBusyId(req.id);
     try {
-      if (req.source === "vip") {
-        await supabase.from("vip_upgrade_requests").update({ 
-          status: "rejected",
-          admin_notes: reason,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: "admin"
-        }).eq("id", req.id);
-      } else {
-        await supabase.from("upgrade_requests").update({ 
-          status: "rejected" 
-        }).eq("id", req.id);
-      }
+      await supabase.from("vip_upgrade_requests").update({ 
+        status: "rejected", admin_notes: reason,
+        reviewed_at: new Date().toISOString(), reviewed_by: "admin"
+      }).eq("id", req.id);
       
       await supabase.from("messages").insert({
         title: "Upgrade Request Declined",
-        body: `Your upgrade request was not approved. Reason: ${reason}. Please contact support if you believe this is an error.`,
-        audience: "user",
-        audience_value: req.user_id,
+        body: `Your upgrade request was not approved. Reason: ${reason}.`,
+        audience: "user", audience_value: req.user_id,
       });
       
       toast.success("Rejected");
       load();
     } catch (e: any) {
       toast.error(e?.message || "Failed to reject");
-    } finally {
-      setBusyId(null);
-    }
+    } finally { setBusyId(null); }
   }
 
   return (
@@ -615,13 +591,12 @@ function UpgradesTab() {
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (
-            <div key={`${r.source}-${r.id}`} className="glass rounded-2xl p-5">
+            <div key={r.id} className="glass rounded-2xl p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-lg">{r.display_name}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-gold/15 text-gold font-mono">{r.phone}</span>
-                    {r.source === "vip" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">VIP</span>}
                   </div>
                   
                   <div className="flex items-center gap-3 text-sm mt-2">
@@ -633,7 +608,7 @@ function UpgradesTab() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 text-sm">
                     <div>
                       <p className="text-xs text-muted-foreground">M-Pesa Code</p>
-                      <p className="font-mono font-semibold">{r.mpesa_code || r.transaction_code || "N/A"}</p>
+                      <p className="font-mono font-semibold">{r.mpesa_code || "N/A"}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Amount Paid</p>
