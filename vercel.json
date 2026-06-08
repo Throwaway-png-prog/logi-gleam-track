@@ -1,12 +1,11 @@
 {
   "buildCommand": "bun run build",
   "installCommand": "bun install",
-  "framework": "nextjs",
   "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/__tss"
+      "destination": "/index.html"
     }
   ]
 }
