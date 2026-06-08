@@ -1,4 +1,4 @@
-shiet we have  to update it , give  me  full updated  code without changing  anything else just an update+ picture  and name  should match! import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface InterviewResponses {
   why: string;
